@@ -1,0 +1,65 @@
+import discord
+from discord.ext import commands
+
+class AdminCmd(commands.Cog):
+    def __init__(self,client):
+        self.client=client
+    
+    @commands.Cog.listener()
+    async def on_ready(self):
+        pass
+    
+    
+    @commands.command(pass_context=True)
+    @commands.has_permissions(administrator=True)
+    async def leave(self,ctx):
+        await ctx.message.guild.voice_client.disconnect()
+        
+
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def join(self,ctx):
+        guild = ctx.message.author.voice.channel
+        
+        await guild.connect()
+
+
+    @commands.command()
+    @commands.has_permissions(manage_messages=True)
+    async def purge(self, ctx):
+        await ctx.channel.purge()
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def quit(self, ctx):
+        await self.client.logout()
+        await self.client.close()
+        
+
+    @commands.command()
+    async def kick(self, ctx, member : discord.Member):
+        await  member.kick()
+
+    @commands.command()
+    async def ban(self, ctx, member : discord.Member):
+        await  member.ban()
+        await ctx.send(f'Banned {member.mention}')
+
+    @commands.command()
+    async def unban(self, ctx, *, member):
+        banned_users = await ctx.guild.bans()
+        member_name, member_discriminator = member.split('#')
+
+        for ban_entry in banned_users:
+            user = ban_entry.user
+
+            if(user.name, user.discriminator) == (member_name,member_discriminator):
+                await ctx.guild.unban(user)
+                await ctx.send(f'Unbanned {user.mention}')
+                return
+
+
+
+def setup(client):
+    client.add_cog(AdminCmd(client))
