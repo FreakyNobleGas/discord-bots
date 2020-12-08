@@ -32,15 +32,22 @@ async def on_voice_state_update(member, before, after):
         
     guild = discord.utils.get(client.guilds, name=str(member.guild))
     now = time.time()
-
+    
     # Go through each voice channel in the guild and determine if the voice channel was previously empty,
     # it hasn't been empty longer than 30 seconds, and the member joined the channel.
     for vc in guild.voice_channels:
-    
+
         if (member.voice is not None) and (len(vc.members) == 1) and ((now - time_of_last_msg) > 30.0):
+
+            # Find text channel to post in
+            channel = None
             for ch in guild.channels[0].text_channels:
                 if (ch.name == "general"):
                     channel = ch
+            
+            # Set channel to first in the list if there is no general text channel
+            if channel is None: channel = guild.channels[0].text_channels[0]
+
             await channel.send(f'{member} just joined the {member.voice.channel} voice channel!')
             print(f'{member.voice}')
 
