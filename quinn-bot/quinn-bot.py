@@ -48,8 +48,21 @@ async def on_voice_state_update(member, before, after):
             # Set channel to first in the list if there is no general text channel
             if channel is None: channel = guild.channels[0].text_channels[0]
 
-            await channel.send(f'{member} just joined the {member.voice.channel} voice channel!')
-            print(f'{member.voice}')
+            # Delete previous announcements from the bot
+            try:
+                async for message in channel.history(limit=200):
+                    if message.author == client.user:
+                        print("Deleting message: ", message.content)
+                        await message.delete()
+            except:
+                print("Error: Failed to delete previous messages.")
+
+            # Send a message that a user just joined the channel
+            try:
+                await channel.send(f'{member} just joined the {member.voice.channel} voice channel!')
+                print(f'{member.voice}')
+            except:
+                print("Error: Failed to send message to text channel.")
 
             # Update the last time a member joined an empty voice channel
             time_of_last_msg = time.time()
