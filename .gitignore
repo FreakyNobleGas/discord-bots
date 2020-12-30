@@ -4,3 +4,4 @@ venv
 .idea
 *.pyc
 .vscode
+metrics.json
