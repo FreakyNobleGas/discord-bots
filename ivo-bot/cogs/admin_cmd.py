@@ -9,11 +9,12 @@ class AdminCmd(commands.Cog):
     async def on_ready(self):
         pass
     
+    ''' 
     @commands.command(pass_context=True)
     @commands.has_permissions(administrator=True)
     async def leave(self,ctx):
         await ctx.message.guild.voice_client.disconnect()
-        
+
     #joins voice channel  needs PyNaCL to function
     @commands.command()
     @commands.has_permissions(administrator=True)
@@ -27,7 +28,7 @@ class AdminCmd(commands.Cog):
     @commands.has_permissions(manage_messages=True)
     async def purge(self, ctx):
         await ctx.channel.purge()
-
+    
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def quit(self, ctx):
@@ -55,6 +56,7 @@ class AdminCmd(commands.Cog):
                 await ctx.guild.unban(user)
                 await ctx.send(f'Unbanned {user.mention}')
                 return
+    '''
 
 def setup(client):
     client.add_cog(AdminCmd(client))
