@@ -54,6 +54,7 @@ except Exception as e:
 @client.command()
 async def load(ctx, extension):
     print("loading...")
+    print("Extension is ", extension)
     client.load_extension(f'cogs.{extension}')
 
 # Unload specific cog
@@ -117,5 +118,7 @@ async def on_message(message):
         with open("metrics.json", "w+") as metricsFile:
             metricsFile.write(json.dumps(metrics))
         metricsFile.close()
+
+    await commands.Bot.process_commands(client, message)
 
 client.run(TOKEN)
