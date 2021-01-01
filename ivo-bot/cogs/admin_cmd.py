@@ -1,4 +1,5 @@
 import discord
+import json
 from discord.ext import commands
 
 class AdminCmd(commands.Cog):
@@ -9,7 +10,23 @@ class AdminCmd(commands.Cog):
     async def on_ready(self):
         pass
     
-    ''' 
+    # Returns the top favorite songs in a server
+    @commands.command(pass_context=True)
+    @commands.has_permissions(administrator=True)
+    async def topFavoriteSongs(self, ctx):
+        print("bye")
+        id = ctx.message.guild.id
+        try:
+            with open("metrics.json") as metricsFile:
+                metrics = json.load(metricsFile,)
+    
+            metricsFile.close()
+        except Exception as e:
+            print("Error: Failed to open metrics.json.")
+            print(e)
+
+        print("hi")
+ 
     @commands.command(pass_context=True)
     @commands.has_permissions(administrator=True)
     async def leave(self,ctx):
@@ -56,7 +73,8 @@ class AdminCmd(commands.Cog):
                 await ctx.guild.unban(user)
                 await ctx.send(f'Unbanned {user.mention}')
                 return
-    '''
+    
 
 def setup(client):
+    print("Setting up commands")
     client.add_cog(AdminCmd(client))

@@ -53,6 +53,7 @@ except Exception as e:
 # Loads specific cog
 @client.command()
 async def load(ctx, extension):
+    print("loading...")
     client.load_extension(f'cogs.{extension}')
 
 # Unload specific cog
@@ -75,7 +76,6 @@ async def on_ready():
 @client.event
 async def on_message(message):
     global metrics
-    print(type(metrics))
 
     if "-play" in message.content:
         author = str(message.author)
