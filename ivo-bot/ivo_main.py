@@ -6,7 +6,7 @@ import os
 import discord
 import time
 import json
-import pathlib
+import helper_functions
 from dotenv import load_dotenv
 from discord.ext import commands
 
@@ -18,37 +18,6 @@ client = discord.Client()
 
 # Sets command prefix
 client = commands.Bot(command_prefix = '$')
-
-# Get metrics file
-try:
-    file = pathlib.Path("metrics.json")
-    if file.is_file():
-        print("Loading metrics file.")
-        metricsFile = open("metrics.json", "r+")
-    else:
-        print("No metrics file found. Creating new metrics file.")
-        metricsFile = open("metrics.json", "w+")
-        metricsFile.write("{}")
-        metricsFile.close()
-
-except Exception as e:
-    print("Error: Could not open file! Exiting...")
-    print(e)
-    exit()
-
-# Get JSON object that holds metrics
-try:
-    print("Loading metrics JSON file.")
-    global metrics
-    with open("metrics.json") as metricsFile:
-        metrics = json.load(metricsFile,)
-    
-    metricsFile.close()    
-
-except Exception as e:
-    print("Error: Could not load metrics file. Exiting...")
-    print(e)
-    exit()
 
 # Loads specific cog
 @client.command()
@@ -73,6 +42,9 @@ async def on_ready():
     print(f'{client.user} is connected to the following servers:')
     for guild in client.guilds:
         print('\t', guild.name, ' - ', guild.id)
+
+    global metrics
+    metrics = helper_functions.get_metrics_file(client)
 
 @client.event
 async def on_message(message):
