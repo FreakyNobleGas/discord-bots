@@ -5,32 +5,35 @@ import discord
 import pathlib
 import json
 
-async def retreive_all_messages(channel):
-    print("hi")
-
-    messages = await channel.history(limit=123).flatten()
-    return messages
-
 # Retrieves all past requested songs if metrics data is not present
 async def get_all_past_songs(client):
     metrics = {}
-    print(client.guilds)
 
+    # Loop through every message in every text channel for every available guild
+    # to find previously played songs and add them to the metrics object
     for guild in client.guilds:
-        print(guild)
-        for channel in guild.text_channels:
-            print(channel)
-            messages = await retreive_all_messages(channel)
+        metrics[guild.name] = {}
+
+        for channel in guild.text_channels:   
+            messages = await channel.history().flatten()
     
-            print("bye")
-            print(type(messages))
-            print(messages)
             for message in messages:
                 content = str(message.content)
                 author = str(message.author)
                 if content.startswith("-play "):
-                    print(author, ":", content)
+                    # Check if author exists in guild and increment song appropriately. Otherwise, create new author
+                    # with song.
+                    if author in metrics[guild.name]:
+                        
+                        # Check if song exists, if yes, then increment count. Otherwise add new song to list
+                        if content in metrics[guild.name][author]:
+                            metrics[guild.name][author][content] = int(metrics[guild.name][author][content]) + 1
+                        else:
+                            metrics[guild.name][author][content] = 1
                     
+                    else:
+                        metrics[guild.name][author] = {content : 1}
+                        
     return metrics
 
 # Retrieves metrics file if it does not exist or generates one during run-time.
