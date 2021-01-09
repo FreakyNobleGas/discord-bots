@@ -44,7 +44,7 @@ async def on_ready():
         print('\t', guild.name, ' - ', guild.id)
 
     global metrics
-    metrics = helper_functions.get_metrics_file(client)
+    metrics = await helper_functions.get_metrics_file(client)
 
 @client.event
 async def on_message(message):
