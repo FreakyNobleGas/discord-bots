@@ -21,6 +21,9 @@ async def get_all_past_songs(client):
                 content = str(message.content)
                 author = str(message.author)
                 if content.startswith("-play "):
+                    # Remove '-play ' from song
+                    content = content[6:]
+                    
                     # Check if author exists in guild and increment song appropriately. Otherwise, create new author
                     # with song.
                     if author in metrics[guild.name]:
