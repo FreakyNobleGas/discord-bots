@@ -5,3 +5,4 @@ venv
 *.pyc
 .vscode
 metrics.json
+discord_servers.json
