@@ -33,8 +33,6 @@ span_processor = BatchSpanProcessor(jaeger_exporter)
 # add to the tracer
 trace.get_tracer_provider().add_span_processor(span_processor)
 
-
-
 # Grab secret env variables
 load_dotenv()
 TOKEN = getenv('DISCORD_TOKEN')
@@ -47,52 +45,56 @@ time_of_last_msg = time()
 
 @client.event
 async def on_ready():
-    print(f'{client.user} has connected to Discord!')
-    print(f'{client.user} is connected to the following servers:')
-    for guild in client.guilds:
-        print('\t', guild.name, ' - ', guild.id)
+    with tracer.start_as_current_span('on_ready'):
+        print(f'{client.user} has connected to Discord!')
+        print(f'{client.user} is connected to the following servers:')
+        for guild in client.guilds:
+            print('\t', guild.name, ' - ', guild.id)
 
 @client.event
 async def on_voice_state_update(member, before, after):
     with tracer.start_as_current_span('on_voice_state_update'):
         # Define important variables
         global time_of_last_msg
-            
-        guild = discord.utils.get(client.guilds, name=str(member.guild))
+        
+        with tracer.start_as_current_span(f'Get all guilds for member {member}'):
+            guild = discord.utils.get(client.guilds, name=str(member.guild))
         now = time()
         
         # Go through each voice channel in the guild and determine if the voice channel was previously empty,
         # it hasn't been empty longer than 30 seconds, and the member joined the channel.
         for vc in guild.voice_channels:
+            with tracer.start_as_current_span('Check Voice Channel ' + str(vc)):
+                if (member.voice is not None) and (len(vc.members) == 1) and ((now - time_of_last_msg) > 30.0):
 
-            if (member.voice is not None) and (len(vc.members) == 1) and ((now - time_of_last_msg) > 30.0):
+                    # Find text channel to post in
+                    channel = None
+                    for ch in guild.channels[0].text_channels:
+                        if (ch.name == "general"):
+                            channel = ch
+                    
+                    # Set channel to first in the list if there is no general text channel
+                    if channel is None: channel = guild.channels[0].text_channels[0]
 
-                # Find text channel to post in
-                channel = None
-                for ch in guild.channels[0].text_channels:
-                    if (ch.name == "general"):
-                        channel = ch
-                
-                # Set channel to first in the list if there is no general text channel
-                if channel is None: channel = guild.channels[0].text_channels[0]
+                    # Delete previous announcements from the bot
+                    with tracer.start_as_current_span('Delete previous Bot Announcement'):
+                        try:
+                            async for message in channel.history(limit=200):
+                                if message.author == client.user:
+                                    print("Deleting message: ", message.content)
+                                    await message.delete()
+                        except:
+                            print("Error: Failed to delete previous messages.")
 
-                # Delete previous announcements from the bot
-                try:
-                    async for message in channel.history(limit=200):
-                        if message.author == client.user:
-                            print("Deleting message: ", message.content)
-                            await message.delete()
-                except:
-                    print("Error: Failed to delete previous messages.")
+                    # Send a message that a user just joined the channel
+                    with tracer.start_as_current_span(f'Send announcement that {member} joined'):
+                        try:
+                            await channel.send(f'{member} just joined the {member.voice.channel} voice channel!')
+                            print(f'{member.voice}')
+                        except:
+                            print("Error: Failed to send message to text channel.")
 
-                # Send a message that a user just joined the channel
-                try:
-                    await channel.send(f'{member} just joined the {member.voice.channel} voice channel!')
-                    print(f'{member.voice}')
-                except:
-                    print("Error: Failed to send message to text channel.")
-
-                # Update the last time a member joined an empty voice channel
-                time_of_last_msg = time()
+                    # Update the last time a member joined an empty voice channel
+                    time_of_last_msg = time()
 
 client.run(TOKEN)
