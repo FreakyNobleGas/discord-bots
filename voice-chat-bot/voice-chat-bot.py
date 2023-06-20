@@ -15,7 +15,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 trace.set_tracer_provider(
 TracerProvider(
-        resource=Resource.create({SERVICE_NAME: "quinn-bot"})
+        resource=Resource.create({SERVICE_NAME: "voice-chat-bot"})
     )
 )
 tracer = trace.get_tracer(__name__)
