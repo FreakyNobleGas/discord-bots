@@ -1,0 +1,7 @@
+services:
+  voice-chat-bot:
+    image: freakynoblegas/voice-chat-bot:1.0
+    container_name: voice-chat-bot
+    restart: unless-stopped
+    env_file:
+      - ../.env
