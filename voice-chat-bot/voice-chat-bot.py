@@ -7,7 +7,10 @@ from os import getenv
 import discord
 from time import time
 from dotenv import load_dotenv
+import logging
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Grab secret env variables
 load_dotenv()
@@ -23,14 +26,13 @@ time_of_last_msg = time()
 
 @client.event
 async def on_ready():
-    print(f'{client.user} has connected to Discord!')
-    print(f'{client.user} is connected to the following servers:')
+    logger.info(f'{client.user} has connected to Discord!')
     for guild in client.guilds:
-        print('\t', guild.name, ' - ', guild.id)
+        logger.info(f"Connected to {guild.name}")
 
 @client.event
 async def on_voice_state_update(member, before, after):
-    # Define important variables
+    # TODO: Update this variable to be unique across all servers.
     global time_of_last_msg
         
     guild = discord.utils.get(client.guilds, name=str(member.guild))
@@ -54,17 +56,17 @@ async def on_voice_state_update(member, before, after):
             try:
                 async for message in channel.history(limit=200):
                     if message.author == client.user:
-                        print("Deleting message: ", message.content)
+                        logger.info(f"Deleting message: {message.content}")
                         await message.delete()
             except:
-                print("Error: Failed to delete previous messages.")
+                logger.info("Error: Failed to delete previous messages.")
 
             # Send a message that a user just joined the channel
             try:
                 await channel.send(f'{member} just joined the {member.voice.channel} voice channel!')
-                print(f'{member.voice}')
+                logger.info(f'{member.voice}')
             except:
-                print("Error: Failed to send message to text channel.")
+                logger.info("Error: Failed to send message to text channel.")
 
             # Update the last time a member joined an empty voice channel
             time_of_last_msg = time()
