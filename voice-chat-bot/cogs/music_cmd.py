@@ -5,6 +5,12 @@ from discord.ext import commands
 from discord import app_commands
 import yt_dlp
 
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('music_bot')
+
 class MusicCmd(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
