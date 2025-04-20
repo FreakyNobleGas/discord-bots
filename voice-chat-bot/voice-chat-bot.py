@@ -30,9 +30,7 @@ time_of_last_msg = time()
 
 @bot.event
 async def on_ready():
-    guild = discord.Object(id=720317851151499294)
-    bot.tree.copy_global_to(guild=guild)
-    await bot.tree.sync(guild=guild)
+    await bot.tree.sync()
     logger.info(f'{bot.user} has connected to Discord!')
     for guild in bot.guilds:
         logger.info(f"Connected to {guild.name}")
