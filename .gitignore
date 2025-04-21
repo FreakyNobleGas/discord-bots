@@ -1,4 +1,5 @@
 .env
+.dockerignore
 node_modules
 venv
 .idea
