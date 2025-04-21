@@ -1,9 +1,9 @@
 services:
-  voice-chat-bot:
-    image: freakynoblegas/voice-chat-bot:1.0
+  music-bot:
+    image: xwolfinbarger/music-bot:1.0
     pull_policy: build
     build: .
-    container_name: voice-chat-bot
+    container_name: music-bot
     restart: unless-stopped
     env_file:
       - ../.env

@@ -34,10 +34,10 @@ async def on_ready():
 async def on_voice_state_update(member, before, after):
     # TODO: Update this variable to be unique across all servers.
     global time_of_last_msg
-        
+
     guild = discord.utils.get(client.guilds, name=str(member.guild))
     now = time()
-        
+
     # Go through each voice channel in the guild and determine if the voice channel was previously empty,
     # it hasn't been empty longer than 30 seconds, and the member joined the channel.
     for vc in guild.voice_channels:
