@@ -23,9 +23,6 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# Keep track of how often a user joins an empty voice channel
-global time_of_last_msg
-time_of_last_msg = time()
 
 @bot.event
 async def on_ready():
