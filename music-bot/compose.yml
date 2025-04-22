@@ -6,4 +6,4 @@ services:
     container_name: music-bot
     restart: unless-stopped
     env_file:
-      - ../.env
+      - .env

@@ -6,4 +6,4 @@ services:
     container_name: voice-chat-bot
     restart: unless-stopped
     env_file:
-      - ../.env
+      - .env
