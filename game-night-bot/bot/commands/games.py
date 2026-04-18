@@ -19,8 +19,8 @@ _THINKING_FRAMES = [
 
 
 async def _animate_thinking(interaction: discord.Interaction, stop: asyncio.Event):
-    """Cycle through status messages every 3s until stop is set."""
-    for i in range(len(_THINKING_FRAMES) * 3):  # cap iterations
+    """Cycle through status messages on the original response every 3s until stop is set."""
+    for i in range(len(_THINKING_FRAMES) * 3):
         await asyncio.sleep(3)
         if stop.is_set():
             return
@@ -28,6 +28,18 @@ async def _animate_thinking(interaction: discord.Interaction, stop: asyncio.Even
             await interaction.edit_original_response(
                 content=_THINKING_FRAMES[i % len(_THINKING_FRAMES)]
             )
+        except Exception:
+            return
+
+
+async def _animate_message(msg: discord.Message, stop: asyncio.Event):
+    """Cycle through status messages on a specific message every 3s until stop is set."""
+    for i in range(len(_THINKING_FRAMES) * 3):
+        await asyncio.sleep(3)
+        if stop.is_set():
+            return
+        try:
+            await msg.edit(content=_THINKING_FRAMES[i % len(_THINKING_FRAMES)])
         except Exception:
             return
 
@@ -46,13 +58,70 @@ def _check_genre_warning(queue_genres: list[str]) -> str | None:
     return None
 
 
-class RAWGMatchView(discord.ui.View):
-    """Ephemeral select-menu for picking the correct RAWG match."""
+async def _run_enrichment_on_message(
+    msg: discord.Message,
+    channel: discord.TextChannel,
+    game_data: dict,
+    added_by: str,
+):
+    """Run the Claude crossplay check and update `msg` with the result."""
+    stop = asyncio.Event()
+    animation = asyncio.create_task(_animate_message(msg, stop))
+    try:
+        result = await enrichment.check_crossplay(game_data)
+    except Exception as exc:
+        logger.error("Crossplay check failed for %s: %s", game_data["name"], exc)
+        stop.set()
+        animation.cancel()
+        await msg.edit(content=f"❌ Could not verify crossplay status: {exc}")
+        return
+    finally:
+        stop.set()
+        animation.cancel()
 
-    def __init__(self, matches: list[dict], added_by: str):
+    crossplay = result.get("crossplay", False)
+    confidence = result.get("confidence", "low")
+
+    if not crossplay:
+        embed = embeds.crossplay_rejected(game_data, result)
+        await msg.edit(content=None, embed=embed)
+        return
+
+    await database.add_game(
+        name=game_data["name"],
+        rawg_id=game_data["id"],
+        rawg_slug=game_data["slug"],
+        cover_url=game_data["cover_url"],
+        genre_tags=game_data["genres"],
+        crossplay_verified=True,
+        crossplay_confidence=confidence,
+        crossplay_source=result.get("source", ""),
+        added_by=added_by,
+    )
+
+    embed = embeds.game_added(game_data, result, confidence)
+    await msg.edit(content=None, embed=embed)
+
+    if confidence in ("medium", "low"):
+        await channel.send(
+            f"⚠️ Claude wasn't fully confident on crossplay for **{game_data['name']}** "
+            f"({confidence} confidence) — someone double-check before we queue this up!"
+        )
+
+    queue_genres = await database.get_queue_genres()
+    warning = _check_genre_warning(queue_genres)
+    if warning:
+        await channel.send(warning)
+
+
+class RAWGMatchView(discord.ui.View):
+    """Fallback select-menu for picking the correct RAWG match (used when no autocomplete selection was made)."""
+
+    def __init__(self, matches: list[dict], added_by: str, search_term: str):
         super().__init__(timeout=120)
         self.matches = matches
         self.added_by = added_by
+        self.search_term = search_term
 
         options = []
         for m in matches:
@@ -66,6 +135,15 @@ class RAWGMatchView(discord.ui.View):
                 )
             )
 
+        options.append(
+            discord.SelectOption(
+                label="None of these — add manually",
+                value="manual",
+                description="Game isn't in RAWG? Add it without metadata.",
+                emoji="✏️",
+            )
+        )
+
         self._select = discord.ui.Select(
             placeholder="Pick the correct game...",
             options=options,
@@ -74,6 +152,15 @@ class RAWGMatchView(discord.ui.View):
         self.add_item(self._select)
 
     async def _on_select(self, interaction: discord.Interaction):
+        if self._select.values[0] == "manual":
+            view = ManualAddView(game_name=self.search_term, added_by=self.added_by)
+            await interaction.response.edit_message(
+                content=f"Does **{self.search_term}** support Xbox ↔ PC crossplay?",
+                embed=None,
+                view=view,
+            )
+            return
+
         chosen_id = int(self._select.values[0])
         game_data = next(m for m in self.matches if m["id"] == chosen_id)
 
@@ -84,7 +171,6 @@ class RAWGMatchView(discord.ui.View):
             view=self,
         )
 
-        # Duplicate check
         if await database.game_exists_by_rawg_id(game_data["id"]):
             await interaction.edit_original_response(
                 content=f"⚠️ **{game_data['name']}** is already in the system!",
@@ -92,7 +178,6 @@ class RAWGMatchView(discord.ui.View):
             )
             return
 
-        # Claude crossplay check with animated status
         stop = asyncio.Event()
         animation = asyncio.create_task(_animate_thinking(interaction, stop))
         try:
@@ -118,7 +203,6 @@ class RAWGMatchView(discord.ui.View):
             await interaction.edit_original_response(content=None, embed=embed, view=None)
             return
 
-        # Persist
         await database.add_game(
             name=game_data["name"],
             rawg_id=game_data["id"],
@@ -134,7 +218,6 @@ class RAWGMatchView(discord.ui.View):
         embed = embeds.game_added(game_data, result, confidence)
         await interaction.edit_original_response(content=None, embed=embed, view=None)
 
-        # Post public follow-ups
         if confidence in ("medium", "low"):
             await interaction.channel.send(
                 f"⚠️ Claude wasn't fully confident on crossplay for **{game_data['name']}** "
@@ -145,6 +228,54 @@ class RAWGMatchView(discord.ui.View):
         warning = _check_genre_warning(queue_genres)
         if warning:
             await interaction.channel.send(warning)
+
+
+class ManualAddView(discord.ui.View):
+    """Shown when a game isn't found on RAWG — lets the user confirm crossplay and add manually."""
+
+    def __init__(self, game_name: str, added_by: str):
+        super().__init__(timeout=120)
+        self.game_name = game_name
+        self.added_by = added_by
+
+    @discord.ui.button(label="✅ Yes, crossplay works", style=discord.ButtonStyle.green)
+    async def confirm_crossplay(self, interaction: discord.Interaction, button: discord.ui.Button):
+        for item in self.children:
+            item.disabled = True
+        await interaction.response.edit_message(view=self)
+
+        await database.add_game(
+            name=self.game_name,
+            rawg_id=None,
+            rawg_slug=None,
+            cover_url="",
+            genre_tags=[],
+            crossplay_verified=True,
+            crossplay_confidence="high",
+            crossplay_source="Manually confirmed by user",
+            added_by=self.added_by,
+        )
+
+        await interaction.edit_original_response(
+            content=None,
+            embed=discord.Embed(
+                title=f"🎮 {self.game_name} — Added to Bench",
+                description="Added manually (not in RAWG). No cover art or genre data.",
+                color=discord.Color.green(),
+            ),
+            view=None,
+        )
+        self.stop()
+
+    @discord.ui.button(label="❌ No crossplay", style=discord.ButtonStyle.red)
+    async def deny_crossplay(self, interaction: discord.Interaction, button: discord.ui.Button):
+        for item in self.children:
+            item.disabled = True
+        await interaction.response.edit_message(
+            content=f"❌ **{self.game_name}** was not added — no Xbox ↔ PC crossplay.",
+            view=None,
+        )
+        self.stop()
 
 
 class BenchVoteButton(discord.ui.Button):
@@ -175,10 +306,36 @@ class BenchVoteButton(discord.ui.Button):
 class BenchView(discord.ui.View):
     def __init__(self, bench_games: list[dict]):
         super().__init__(timeout=300)
-        for game in bench_games[:25]:  # Discord component limit
+        for game in bench_games[:25]:
             self.add_item(
                 BenchVoteButton(game["id"], game["name"], game.get("vote_count", 0))
             )
+
+
+async def _game_name_autocomplete(
+    interaction: discord.Interaction, current: str
+) -> list[app_commands.Choice[str]]:
+    if len(current) < 2:
+        return []
+    try:
+        matches = await enrichment.search_rawg(current, limit=5)
+    except Exception:
+        matches = []
+
+    choices = [
+        app_commands.Choice(
+            name=f"{m['name']} ({(m['released'] or '')[:4]})"[:100],
+            value=str(m["id"]),
+        )
+        for m in matches
+    ]
+    choices.append(
+        app_commands.Choice(
+            name="✏️ None of these — add manually",
+            value=f"manual:{current}",
+        )
+    )
+    return choices
 
 
 class GamesCog(commands.Cog):
@@ -186,26 +343,59 @@ class GamesCog(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="add-game", description="Add a game to the rotation bench")
-    @app_commands.describe(name="Name of the game to search for")
+    @app_commands.describe(name="Search for a game — pick from the dropdown for best results")
+    @app_commands.autocomplete(name=_game_name_autocomplete)
     async def add_game(self, interaction: discord.Interaction, name: str):
         await interaction.response.defer()
 
-        try:
-            matches = await enrichment.search_rawg(name)
-        except Exception as exc:
-            logger.error("RAWG search error: %s", exc)
-            await interaction.followup.send(f"❌ Could not reach RAWG API: {exc}")
-            return
-
-        if not matches:
+        # "None of these" selected from autocomplete
+        if name.startswith("manual:"):
+            game_name = name[len("manual:"):]
+            view = ManualAddView(game_name=game_name, added_by=interaction.user.name)
             await interaction.followup.send(
-                f"No games found matching **{name}**. Try a more specific search term."
+                content=f"Does **{game_name}** support Xbox ↔ PC crossplay?",
+                view=view,
             )
             return
 
-        embed = embeds.rawg_matches(matches, name)
-        view = RAWGMatchView(matches=matches, added_by=interaction.user.name)
-        await interaction.followup.send(embed=embed, view=view)
+        # If the user selected a match from autocomplete, name is the RAWG ID
+        if name.isdigit():
+            try:
+                game_data = await enrichment.get_rawg_game_by_id(int(name))
+            except Exception as exc:
+                logger.error("RAWG fetch by ID failed: %s", exc)
+                await interaction.followup.send(f"❌ Could not fetch game from RAWG: {exc}")
+                return
+
+            if await database.game_exists_by_rawg_id(game_data["id"]):
+                await interaction.followup.send(
+                    f"⚠️ **{game_data['name']}** is already in the system!"
+                )
+                return
+
+            msg = await interaction.followup.send(content=_THINKING_FRAMES[0])
+            await _run_enrichment_on_message(msg, interaction.channel, game_data, interaction.user.name)
+
+        # Otherwise fall back to search + select menu
+        else:
+            try:
+                matches = await enrichment.search_rawg(name, limit=5)
+            except Exception as exc:
+                logger.error("RAWG search error: %s", exc)
+                await interaction.followup.send(f"❌ Could not reach RAWG API: {exc}")
+                return
+
+            if not matches:
+                view = ManualAddView(game_name=name, added_by=interaction.user.name)
+                await interaction.followup.send(
+                    content=f"**{name}** wasn't found on RAWG. Does it support Xbox ↔ PC crossplay?",
+                    view=view,
+                )
+                return
+
+            embed = embeds.rawg_matches(matches, name)
+            view = RAWGMatchView(matches=matches, added_by=interaction.user.name, search_term=name)
+            await interaction.followup.send(embed=embed, view=view)
 
     @app_commands.command(name="remove-game", description="Retire a game from the rotation")
     @app_commands.describe(name="Full or partial name of the game to retire")
