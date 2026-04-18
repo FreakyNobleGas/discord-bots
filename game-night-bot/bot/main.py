@@ -27,6 +27,7 @@ class RotationBot(commands.Bot):
         await self.load_extension("bot.commands.games")
         await self.load_extension("bot.commands.rotation")
         await self.load_extension("bot.commands.sessions")
+        await self.load_extension("bot.commands.help")
         logger.info("Cogs loaded.")
 
         # Sync to all configured guilds for instant command availability

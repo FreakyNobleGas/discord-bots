@@ -60,6 +60,7 @@ def _check_genre_warning(queue_genres: list[str]) -> str | None:
 async def _run_enrichment_on_message(
     msg: discord.Message,
     channel: discord.TextChannel,
+    guild_id: int,
     game_data: dict,
     added_by: str,
 ):
@@ -87,6 +88,7 @@ async def _run_enrichment_on_message(
         return
 
     await database.add_game(
+        guild_id=guild_id,
         name=game_data["name"],
         rawg_id=game_data["id"],
         rawg_slug=game_data["slug"],
@@ -107,7 +109,7 @@ async def _run_enrichment_on_message(
             f"({confidence} confidence) — somebody check dis, dammit!"
         )
 
-    queue_genres = await database.get_queue_genres()
+    queue_genres = await database.get_queue_genres(guild_id)
     warning = _check_genre_warning(queue_genres)
     if warning:
         await channel.send(warning)
@@ -116,11 +118,12 @@ async def _run_enrichment_on_message(
 class RAWGMatchView(discord.ui.View):
     """Fallback select-menu for picking the correct RAWG match (used when no autocomplete selection was made)."""
 
-    def __init__(self, matches: list[dict], added_by: str, search_term: str):
+    def __init__(self, matches: list[dict], added_by: str, search_term: str, guild_id: int):
         super().__init__(timeout=120)
         self.matches = matches
         self.added_by = added_by
         self.search_term = search_term
+        self.guild_id = guild_id
 
         options = []
         for m in matches:
@@ -144,7 +147,7 @@ class RAWGMatchView(discord.ui.View):
         )
 
         self._select = discord.ui.Select(
-            placeholder="Pick the correct game...",
+            placeholder="Pick da light game...",
             options=options,
         )
         self._select.callback = self._on_select
@@ -152,7 +155,7 @@ class RAWGMatchView(discord.ui.View):
 
     async def _on_select(self, interaction: discord.Interaction):
         if self._select.values[0] == "manual":
-            view = ManualAddView(game_name=self.search_term, added_by=self.added_by)
+            view = ManualAddView(game_name=self.search_term, added_by=self.added_by, guild_id=self.guild_id)
             await interaction.response.edit_message(
                 content=f"Does **{self.search_term}** support Xbox ↔ PC cwossplay?",
                 embed=None,
@@ -170,7 +173,7 @@ class RAWGMatchView(discord.ui.View):
             view=self,
         )
 
-        if await database.game_exists_by_rawg_id(game_data["id"]):
+        if await database.game_exists_by_rawg_id(self.guild_id, game_data["id"]):
             await interaction.edit_original_response(
                 content=f"⚠️ **{game_data['name']}** aweady in da system!",
                 view=None,
@@ -203,6 +206,7 @@ class RAWGMatchView(discord.ui.View):
             return
 
         await database.add_game(
+            guild_id=self.guild_id,
             name=game_data["name"],
             rawg_id=game_data["id"],
             rawg_slug=game_data["slug"],
@@ -223,7 +227,7 @@ class RAWGMatchView(discord.ui.View):
                 f"({confidence} confidence) — somebody check dis, dammit!"
             )
 
-        queue_genres = await database.get_queue_genres()
+        queue_genres = await database.get_queue_genres(self.guild_id)
         warning = _check_genre_warning(queue_genres)
         if warning:
             await interaction.channel.send(warning)
@@ -232,10 +236,11 @@ class RAWGMatchView(discord.ui.View):
 class ManualAddView(discord.ui.View):
     """Shown when a game isn't found on RAWG — lets the user confirm crossplay and add manually."""
 
-    def __init__(self, game_name: str, added_by: str):
+    def __init__(self, game_name: str, added_by: str, guild_id: int):
         super().__init__(timeout=120)
         self.game_name = game_name
         self.added_by = added_by
+        self.guild_id = guild_id
 
     @discord.ui.button(label="✅ Yes! Cwossplay work!", style=discord.ButtonStyle.green)
     async def confirm_crossplay(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -244,6 +249,7 @@ class ManualAddView(discord.ui.View):
         await interaction.response.edit_message(view=self)
 
         await database.add_game(
+            guild_id=self.guild_id,
             name=self.game_name,
             rawg_id=None,
             rawg_slug=None,
@@ -298,7 +304,7 @@ class BenchVoteButton(discord.ui.Button):
             )
         else:
             await interaction.response.send_message(
-                "You've already voted for this game!", ephemeral=True
+                "You aweady vote for dis game!", ephemeral=True
             )
 
 
@@ -346,11 +352,12 @@ class GamesCog(commands.Cog):
     @app_commands.autocomplete(name=_game_name_autocomplete)
     async def add_game(self, interaction: discord.Interaction, name: str):
         await interaction.response.defer()
+        guild_id = interaction.guild_id
 
         # "None of these" selected from autocomplete
         if name.startswith("manual:"):
             game_name = name[len("manual:"):]
-            view = ManualAddView(game_name=game_name, added_by=interaction.user.name)
+            view = ManualAddView(game_name=game_name, added_by=interaction.user.name, guild_id=guild_id)
             await interaction.followup.send(
                 content=f"Does **{game_name}** support Xbox ↔ PC cwossplay?",
                 view=view,
@@ -363,17 +370,17 @@ class GamesCog(commands.Cog):
                 game_data = await enrichment.get_rawg_game_by_id(int(name))
             except Exception as exc:
                 logger.error("RAWG fetch by ID failed: %s", exc)
-                await interaction.followup.send(f"❌ Could not fetch game from RAWG: {exc}")
+                await interaction.followup.send(f"❌ Could not fetch game flom RAWG: {exc}")
                 return
 
-            if await database.game_exists_by_rawg_id(game_data["id"]):
+            if await database.game_exists_by_rawg_id(guild_id, game_data["id"]):
                 await interaction.followup.send(
                     f"⚠️ **{game_data['name']}** aweady in da system!"
                 )
                 return
 
             msg = await interaction.followup.send(content=_THINKING_FRAMES[0])
-            await _run_enrichment_on_message(msg, interaction.channel, game_data, interaction.user.name)
+            await _run_enrichment_on_message(msg, interaction.channel, guild_id, game_data, interaction.user.name)
 
         # Otherwise fall back to search + select menu
         else:
@@ -381,11 +388,11 @@ class GamesCog(commands.Cog):
                 matches = await enrichment.search_rawg(name, limit=5)
             except Exception as exc:
                 logger.error("RAWG search error: %s", exc)
-                await interaction.followup.send(f"❌ Could not reach RAWG API: {exc}")
+                await interaction.followup.send(f"❌ Could not weach RAWG API: {exc}")
                 return
 
             if not matches:
-                view = ManualAddView(game_name=name, added_by=interaction.user.name)
+                view = ManualAddView(game_name=name, added_by=interaction.user.name, guild_id=guild_id)
                 await interaction.followup.send(
                     content=f"**{name}** not in RAWG. Does it support Xbox ↔ PC cwossplay?",
                     view=view,
@@ -393,25 +400,26 @@ class GamesCog(commands.Cog):
                 return
 
             embed = embeds.rawg_matches(matches, name)
-            view = RAWGMatchView(matches=matches, added_by=interaction.user.name, search_term=name)
+            view = RAWGMatchView(matches=matches, added_by=interaction.user.name, search_term=name, guild_id=guild_id)
             await interaction.followup.send(embed=embed, view=view)
 
     @app_commands.command(name="remove-game", description="Retire a game from the rotation")
     @app_commands.describe(name="Full or partial name of the game to retire")
     async def remove_game(self, interaction: discord.Interaction, name: str):
         await interaction.response.defer()
+        guild_id = interaction.guild_id
 
-        matches = await database.find_games_by_name(name)
+        matches = await database.find_games_by_name(guild_id, name)
         if not matches:
             await interaction.followup.send(f"No game found matching **{name}**.")
             return
 
         game = matches[0]
-        await database.retire_game(game["id"])
+        await database.retire_game(guild_id, game["id"])
         await interaction.followup.send(
             embed=discord.Embed(
                 title="🗑️ Game Retired",
-                description=f"**{game['name']}** has been removed from the rotation.",
+                description=f"**{game['name']}** has been removed from da lotation.",
                 color=discord.Color.red(),
             )
         )
@@ -420,7 +428,7 @@ class GamesCog(commands.Cog):
     async def bench(self, interaction: discord.Interaction):
         await interaction.response.defer()
 
-        bench_games = await database.get_bench()
+        bench_games = await database.get_bench(interaction.guild_id)
         if not bench_games:
             await interaction.followup.send(
                 "Da bench empty! Use `/add-game`, you son of bitch!"

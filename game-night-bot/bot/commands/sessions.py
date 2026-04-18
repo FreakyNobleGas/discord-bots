@@ -14,8 +14,9 @@ SESSIONS_PER_PAGE = 10
 
 
 class HistoryView(discord.ui.View):
-    def __init__(self, current_page: int, total_pages: int):
+    def __init__(self, guild_id: int, current_page: int, total_pages: int):
         super().__init__(timeout=120)
+        self.guild_id = guild_id
         self.current_page = current_page
         self.total_pages = total_pages
         self._refresh_buttons()
@@ -36,7 +37,7 @@ class HistoryView(discord.ui.View):
 
     async def _update(self, interaction: discord.Interaction):
         sessions, total = await database.get_sessions_paginated(
-            self.current_page, SESSIONS_PER_PAGE
+            self.guild_id, self.current_page, SESSIONS_PER_PAGE
         )
         self.total_pages = max(1, math.ceil(total / SESSIONS_PER_PAGE))
         self._refresh_buttons()
@@ -52,8 +53,9 @@ class SessionsCog(commands.Cog):
     @app_commands.describe(notes="Optional notes about tonight's session")
     async def log_session(self, interaction: discord.Interaction, notes: str | None = None):
         await interaction.response.defer()
+        guild_id = interaction.guild_id
 
-        active = await database.get_active()
+        active = await database.get_active(guild_id)
         if not active:
             await interaction.followup.send(
                 "No game pwaying! Use `/advance` first, come on!"
@@ -87,21 +89,22 @@ class SessionsCog(commands.Cog):
     @app_commands.command(name="history", description="View session history")
     async def history(self, interaction: discord.Interaction):
         await interaction.response.defer()
+        guild_id = interaction.guild_id
 
-        sessions, total = await database.get_sessions_paginated(1, SESSIONS_PER_PAGE)
+        sessions, total = await database.get_sessions_paginated(guild_id, 1, SESSIONS_PER_PAGE)
         if not sessions:
             await interaction.followup.send("No session yet! Git out and play something!")
             return
 
         total_pages = max(1, math.ceil(total / SESSIONS_PER_PAGE))
         embed = embeds.session_history(sessions, 1, total_pages)
-        view = HistoryView(current_page=1, total_pages=total_pages)
+        view = HistoryView(guild_id=guild_id, current_page=1, total_pages=total_pages)
         await interaction.followup.send(embed=embed, view=view)
 
     @app_commands.command(name="stats", description="View rotation statistics")
     async def stats(self, interaction: discord.Interaction):
         await interaction.response.defer()
-        stats = await database.get_stats()
+        stats = await database.get_stats(interaction.guild_id)
         embed = embeds.stats_board(stats)
         await interaction.followup.send(embed=embed)
 

@@ -17,6 +17,7 @@ async def init_db():
         await db.executescript("""
             CREATE TABLE IF NOT EXISTS games (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id INTEGER NOT NULL,
                 name TEXT NOT NULL,
                 rawg_id INTEGER,
                 rawg_slug TEXT,
@@ -75,6 +76,7 @@ async def refresh_cooldowns():
 # ---------------------------------------------------------------------------
 
 async def add_game(
+    guild_id: int,
     name: str,
     rawg_id: int,
     rawg_slug: str,
@@ -89,11 +91,11 @@ async def add_game(
     async with aiosqlite.connect(config.DB_PATH) as db:
         cursor = await db.execute(
             """INSERT INTO games
-               (name, rawg_id, rawg_slug, cover_url, genre_tags,
+               (guild_id, name, rawg_id, rawg_slug, cover_url, genre_tags,
                 crossplay_verified, crossplay_confidence, crossplay_source, added_by)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
-                name, rawg_id, rawg_slug, cover_url, json.dumps(genre_tags),
+                guild_id, name, rawg_id, rawg_slug, cover_url, json.dumps(genre_tags),
                 int(crossplay_verified), crossplay_confidence, crossplay_source, added_by,
             ),
         )
@@ -106,27 +108,32 @@ async def add_game(
         return game_id
 
 
-async def game_exists_by_rawg_id(rawg_id: int) -> bool:
+async def game_exists_by_rawg_id(guild_id: int, rawg_id: int) -> bool:
     async with aiosqlite.connect(config.DB_PATH) as db:
-        cursor = await db.execute("SELECT 1 FROM games WHERE rawg_id = ?", (rawg_id,))
+        cursor = await db.execute(
+            "SELECT 1 FROM games WHERE guild_id = ? AND rawg_id = ?", (guild_id, rawg_id)
+        )
         return await cursor.fetchone() is not None
 
 
-async def find_games_by_name(name: str) -> list[dict]:
+async def find_games_by_name(guild_id: int, name: str) -> list[dict]:
     async with aiosqlite.connect(config.DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
-            "SELECT id, name FROM games WHERE name LIKE ?", (f"%{name}%",)
+            "SELECT id, name FROM games WHERE guild_id = ? AND name LIKE ?",
+            (guild_id, f"%{name}%"),
         )
         return [dict(row) for row in await cursor.fetchall()]
 
 
-async def retire_game(game_id: int):
+async def retire_game(guild_id: int, game_id: int):
     async with aiosqlite.connect(config.DB_PATH) as db:
         await db.execute(
             """UPDATE rotation SET status='retired', exited_at=CURRENT_TIMESTAMP
-               WHERE game_id=? AND status NOT IN ('retired')""",
-            (game_id,),
+               WHERE game_id = ?
+                 AND status NOT IN ('retired')
+                 AND game_id IN (SELECT id FROM games WHERE guild_id = ?)""",
+            (game_id, guild_id),
         )
         await db.commit()
 
@@ -141,34 +148,34 @@ def _parse_row(row) -> dict:
     return d
 
 
-async def get_active() -> Optional[dict]:
+async def get_active(guild_id: int) -> Optional[dict]:
     async with aiosqlite.connect(config.DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("""
             SELECT g.*, r.id as rotation_id, r.session_count, r.entered_at
             FROM rotation r
             JOIN games g ON r.game_id = g.id
-            WHERE r.status = 'active'
+            WHERE r.status = 'active' AND g.guild_id = ?
             LIMIT 1
-        """)
+        """, (guild_id,))
         row = await cursor.fetchone()
         return _parse_row(row) if row else None
 
 
-async def get_queue() -> list[dict]:
+async def get_queue(guild_id: int) -> list[dict]:
     async with aiosqlite.connect(config.DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("""
             SELECT g.*, r.id as rotation_id, r.position, r.session_count
             FROM rotation r
             JOIN games g ON r.game_id = g.id
-            WHERE r.status = 'queue'
+            WHERE r.status = 'queue' AND g.guild_id = ?
             ORDER BY r.position ASC
-        """)
+        """, (guild_id,))
         return [_parse_row(row) for row in await cursor.fetchall()]
 
 
-async def get_bench() -> list[dict]:
+async def get_bench(guild_id: int) -> list[dict]:
     """Bench games sorted by vote count descending."""
     async with aiosqlite.connect(config.DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -178,14 +185,14 @@ async def get_bench() -> list[dict]:
             FROM rotation r
             JOIN games g ON r.game_id = g.id
             LEFT JOIN votes v ON v.game_id = g.id AND v.vote_type = 'bench_up'
-            WHERE r.status = 'bench'
+            WHERE r.status = 'bench' AND g.guild_id = ?
             GROUP BY g.id
             ORDER BY vote_count DESC
-        """)
+        """, (guild_id,))
         return [_parse_row(row) for row in await cursor.fetchall()]
 
 
-async def get_cooldown() -> list[dict]:
+async def get_cooldown(guild_id: int) -> list[dict]:
     """Cooldown games with weeks_remaining calculated."""
     async with aiosqlite.connect(config.DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -193,8 +200,8 @@ async def get_cooldown() -> list[dict]:
             SELECT g.*, r.id as rotation_id, r.exited_at
             FROM rotation r
             JOIN games g ON r.game_id = g.id
-            WHERE r.status = 'cooldown'
-        """)
+            WHERE r.status = 'cooldown' AND g.guild_id = ?
+        """, (guild_id,))
         rows = await cursor.fetchall()
     result = []
     for row in rows:
@@ -209,7 +216,7 @@ async def get_cooldown() -> list[dict]:
     return result
 
 
-async def get_queue_genres() -> list[str]:
+async def get_queue_genres(guild_id: int) -> list[str]:
     """Primary genres of active + queued games in play order."""
     async with aiosqlite.connect(config.DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -217,9 +224,9 @@ async def get_queue_genres() -> list[str]:
             SELECT g.genre_tags
             FROM rotation r
             JOIN games g ON r.game_id = g.id
-            WHERE r.status IN ('active', 'queue')
+            WHERE r.status IN ('active', 'queue') AND g.guild_id = ?
             ORDER BY CASE r.status WHEN 'active' THEN 0 ELSE 1 END, r.position
-        """)
+        """, (guild_id,))
         rows = await cursor.fetchall()
     genres = []
     for row in rows:
@@ -233,7 +240,7 @@ async def get_queue_genres() -> list[str]:
 # Rotation write operations
 # ---------------------------------------------------------------------------
 
-async def advance_rotation() -> dict:
+async def advance_rotation(guild_id: int) -> dict:
     """
     Move active game to cooldown, promote next queue or bench game to active.
     Returns a summary dict: {previous, next, from_bench}.
@@ -244,8 +251,8 @@ async def advance_rotation() -> dict:
         cursor = await db.execute("""
             SELECT r.id, r.game_id, g.name FROM rotation r
             JOIN games g ON g.id = r.game_id
-            WHERE r.status = 'active'
-        """)
+            WHERE r.status = 'active' AND g.guild_id = ?
+        """, (guild_id,))
         active = await cursor.fetchone()
 
         if active:
@@ -259,10 +266,10 @@ async def advance_rotation() -> dict:
         cursor = await db.execute("""
             SELECT r.id, r.game_id, g.name, g.cover_url FROM rotation r
             JOIN games g ON g.id = r.game_id
-            WHERE r.status = 'queue'
+            WHERE r.status = 'queue' AND g.guild_id = ?
             ORDER BY r.position ASC
             LIMIT 1
-        """)
+        """, (guild_id,))
         next_game = await cursor.fetchone()
 
         if not next_game:
@@ -272,11 +279,11 @@ async def advance_rotation() -> dict:
                 FROM rotation r
                 JOIN games g ON g.id = r.game_id
                 LEFT JOIN votes v ON v.game_id = g.id AND v.vote_type = 'bench_up'
-                WHERE r.status = 'bench'
+                WHERE r.status = 'bench' AND g.guild_id = ?
                 GROUP BY r.id
                 ORDER BY vote_count DESC
                 LIMIT 1
-            """)
+            """, (guild_id,))
             next_game = await cursor.fetchone()
 
         if not next_game:
@@ -289,9 +296,12 @@ async def advance_rotation() -> dict:
         )
 
         # Re-number remaining queue positions
-        cursor = await db.execute(
-            "SELECT id FROM rotation WHERE status='queue' ORDER BY position ASC"
-        )
+        cursor = await db.execute("""
+            SELECT r.id FROM rotation r
+            JOIN games g ON g.id = r.game_id
+            WHERE r.status = 'queue' AND g.guild_id = ?
+            ORDER BY r.position ASC
+        """, (guild_id,))
         queue_rows = await cursor.fetchall()
         for i, row in enumerate(queue_rows):
             await db.execute("UPDATE rotation SET position=? WHERE id=?", (i + 1, row["id"]))
@@ -329,34 +339,42 @@ async def log_session(game_id: int, logged_by: str, notes: Optional[str] = None)
         return row[0] if row else 0
 
 
-async def get_sessions_paginated(page: int = 1, per_page: int = 10) -> tuple:
+async def get_sessions_paginated(guild_id: int, page: int = 1, per_page: int = 10) -> tuple:
     """Returns (sessions_list, total_count)."""
     async with aiosqlite.connect(config.DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         offset = (page - 1) * per_page
-        cursor = await db.execute("SELECT COUNT(*) FROM sessions")
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM sessions s JOIN games g ON s.game_id = g.id WHERE g.guild_id = ?",
+            (guild_id,),
+        )
         total = (await cursor.fetchone())[0]
         cursor = await db.execute("""
             SELECT s.*, g.name as game_name
             FROM sessions s
             JOIN games g ON s.game_id = g.id
+            WHERE g.guild_id = ?
             ORDER BY s.played_on DESC
             LIMIT ? OFFSET ?
-        """, (per_page, offset))
+        """, (guild_id, per_page, offset))
         rows = await cursor.fetchall()
         return [dict(row) for row in rows], total
 
 
-async def get_stats() -> dict:
+async def get_stats(guild_id: int) -> dict:
     async with aiosqlite.connect(config.DB_PATH) as db:
-        cursor = await db.execute("SELECT COUNT(*) FROM sessions")
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM sessions s JOIN games g ON s.game_id = g.id WHERE g.guild_id = ?",
+            (guild_id,),
+        )
         total_sessions = (await cursor.fetchone())[0]
 
         cursor = await db.execute("""
             SELECT g.name, COUNT(s.id) as cnt
             FROM sessions s JOIN games g ON s.game_id = g.id
+            WHERE g.guild_id = ?
             GROUP BY g.id ORDER BY cnt DESC LIMIT 1
-        """)
+        """, (guild_id,))
         row = await cursor.fetchone()
         most_played = {"name": row[0], "count": row[1]} if row else None
 
@@ -364,9 +382,10 @@ async def get_stats() -> dict:
             SELECT g.name, g.added_by, g.added_at, COUNT(s.id) as total_sessions
             FROM games g
             LEFT JOIN sessions s ON s.game_id = g.id
+            WHERE g.guild_id = ?
             GROUP BY g.id
             ORDER BY total_sessions DESC
-        """)
+        """, (guild_id,))
         rows = await cursor.fetchall()
         per_game = [
             {"name": r[0], "added_by": r[1], "added_at": r[2], "total_sessions": r[3]}

@@ -10,8 +10,13 @@ logger = logging.getLogger(__name__)
 
 
 async def _send_thursday_reminder(bot):
-    active = await database.get_active()
-    queue = await database.get_queue()
+    for guild_id, channel_id in config.GUILD_CHANNEL_MAP.items():
+        await _send_reminder_to_guild(bot, guild_id, channel_id)
+
+
+async def _send_reminder_to_guild(bot, guild_id: int, channel_id: int):
+    active = await database.get_active(guild_id)
+    queue = await database.get_queue(guild_id)
 
     if not active:
         embed = discord.Embed(
@@ -53,12 +58,11 @@ async def _send_thursday_reminder(bot):
         if active.get("cover_url"):
             embed.set_image(url=active["cover_url"])
 
-    for guild_id, channel_id in config.GUILD_CHANNEL_MAP.items():
-        try:
-            channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
-            await channel.send(embed=embed)
-        except Exception as exc:
-            logger.error("Thursday reminder: could not send to channel %d (guild %d): %s", channel_id, guild_id, exc)
+    try:
+        channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
+        await channel.send(embed=embed)
+    except Exception as exc:
+        logger.error("Thursday reminder: could not send to channel %d (guild %d): %s", channel_id, guild_id, exc)
 
 
 def create_scheduler(bot) -> AsyncIOScheduler:

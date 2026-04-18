@@ -10,14 +10,15 @@ from bot.utils import embeds
 
 logger = logging.getLogger(__name__)
 
-# Tracks active propose-swap views by game_id so we don't double-post
-_active_swap_views: dict[int, "ProposeSwapView"] = {}
+# Tracks active propose-swap views by (guild_id, game_id) so we don't double-post
+_active_swap_views: dict[tuple[int, int], "ProposeSwapView"] = {}
 
 
 class ProposeSwapView(discord.ui.View):
-    def __init__(self, bot: commands.Bot, game_id: int, game_name: str):
+    def __init__(self, bot: commands.Bot, guild_id: int, game_id: int, game_name: str):
         super().__init__(timeout=config.VOTE_WINDOW_HOURS * 3600)
         self.bot = bot
+        self.guild_id = guild_id
         self.game_id = game_id
         self.game_name = game_name
         self.message: discord.Message | None = None
@@ -36,9 +37,9 @@ class ProposeSwapView(discord.ui.View):
             button.disabled = True
             await interaction.response.edit_message(view=self)
             self.stop()
-            _active_swap_views.pop(self.game_id, None)
+            _active_swap_views.pop((self.guild_id, self.game_id), None)
 
-            result = await database.advance_rotation()
+            result = await database.advance_rotation(self.guild_id)
             await database.clear_votes(self.game_id, "early_exit")
 
             embed = embeds.rotation_advanced(result)
@@ -50,7 +51,7 @@ class ProposeSwapView(discord.ui.View):
             )
 
     async def on_timeout(self):
-        _active_swap_views.pop(self.game_id, None)
+        _active_swap_views.pop((self.guild_id, self.game_id), None)
         count = await database.get_vote_count(self.game_id, "early_exit")
         await database.clear_votes(self.game_id, "early_exit")
         if self.message:
@@ -73,12 +74,13 @@ class RotationCog(commands.Cog):
     @app_commands.command(name="rotation", description="Show the current game rotation")
     async def rotation(self, interaction: discord.Interaction):
         await interaction.response.defer()
+        guild_id = interaction.guild_id
         await database.refresh_cooldowns()
 
-        active = await database.get_active()
-        queue = await database.get_queue()
-        bench = await database.get_bench()
-        cooldown = await database.get_cooldown()
+        active = await database.get_active(guild_id)
+        queue = await database.get_queue(guild_id)
+        bench = await database.get_bench(guild_id)
+        cooldown = await database.get_cooldown(guild_id)
 
         embed = embeds.rotation_board(active, queue, bench, cooldown)
         await interaction.followup.send(embed=embed)
@@ -86,13 +88,14 @@ class RotationCog(commands.Cog):
     @app_commands.command(name="advance", description="Advance to the next game in the rotation")
     async def advance(self, interaction: discord.Interaction):
         await interaction.response.defer()
+        guild_id = interaction.guild_id
 
-        active = await database.get_active()
-        result = await database.advance_rotation()
+        active = await database.get_active(guild_id)
+        result = await database.advance_rotation(guild_id)
 
         if active:
             await database.clear_votes(active["id"], "early_exit")
-            _active_swap_views.pop(active["id"], None)
+            _active_swap_views.pop((guild_id, active["id"]), None)
 
         embed = embeds.rotation_advanced(result)
         await interaction.followup.send(embed=embed)
@@ -103,15 +106,16 @@ class RotationCog(commands.Cog):
     )
     async def propose_swap(self, interaction: discord.Interaction):
         await interaction.response.defer()
+        guild_id = interaction.guild_id
 
-        active = await database.get_active()
+        active = await database.get_active(guild_id)
         if not active:
             await interaction.followup.send("No game even pwaying! What you doing?")
             return
 
         game_id = active["id"]
 
-        if game_id in _active_swap_views:
+        if (guild_id, game_id) in _active_swap_views:
             await interaction.followup.send(
                 f"⚠️ Aweady a vote going on for **{active['name']}**! Patience!"
             )
@@ -136,11 +140,10 @@ class RotationCog(commands.Cog):
             color=discord.Color.orange(),
         )
 
-        view = ProposeSwapView(self.bot, game_id, active["name"])
+        view = ProposeSwapView(self.bot, guild_id, game_id, active["name"])
         msg = await interaction.followup.send(embed=embed, view=view)
         view.message = msg
-        _active_swap_views[game_id] = view
-
+        _active_swap_views[(guild_id, game_id)] = view
 
     @app_commands.command(name="send-reminder", description="Manually trigger the Thursday night reminder")
     async def send_reminder(self, interaction: discord.Interaction):
