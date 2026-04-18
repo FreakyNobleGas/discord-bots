@@ -81,7 +81,7 @@ def game_added(game_data: dict, crossplay_result: dict, confidence: str) -> disc
     if crossplay_result.get("notes"):
         embed.add_field(name="Notes", value=crossplay_result["notes"][:200], inline=False)
     if game_data.get("cover_url"):
-        embed.set_thumbnail(url=game_data["cover_url"])
+        embed.set_image(url=game_data["cover_url"])
     return embed
 
 
@@ -96,7 +96,7 @@ def crossplay_rejected(game_data: dict, crossplay_result: dict) -> discord.Embed
     if crossplay_result.get("source"):
         embed.add_field(name="Source", value=crossplay_result["source"][:200], inline=False)
     if game_data.get("cover_url"):
-        embed.set_thumbnail(url=game_data["cover_url"])
+        embed.set_image(url=game_data["cover_url"])
     return embed
 
 
@@ -170,17 +170,20 @@ def rotation_advanced(result: dict) -> discord.Embed:
     from_bench = result.get("from_bench", False)
     if next_game:
         source = " *(from bench)*" if from_bench else ""
-        desc = f"**{prev}** → cooldown\n**{next_game}**{source} → now playing! 🎮"
+        transition = f"**{prev}** → cooldown\n" if prev else ""
+        desc = f"{transition}**{next_game}**{source} → now playing! 🎮"
     else:
-        desc = (
-            f"**{prev}** → cooldown\n\n"
-            "⚠️ Queue and bench are empty. Add more games with `/add-game`!"
-        )
-    return discord.Embed(
+        transition = f"**{prev}** → cooldown\n\n" if prev else ""
+        desc = transition + "⚠️ Queue and bench are empty. Add more games with `/add-game`!"
+    embed = discord.Embed(
         title="🔄 Rotation Advanced",
         description=desc,
         color=discord.Color.green(),
     )
+    cover = result.get("next_cover_url")
+    if cover:
+        embed.set_image(url=cover)
+    return embed
 
 
 # ---------------------------------------------------------------------------

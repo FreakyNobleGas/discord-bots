@@ -247,18 +247,17 @@ async def advance_rotation() -> dict:
             WHERE r.status = 'active'
         """)
         active = await cursor.fetchone()
-        if not active:
-            return {"error": "No active game to advance from."}
 
-        await db.execute(
-            "UPDATE rotation SET status='cooldown', exited_at=CURRENT_TIMESTAMP WHERE id=?",
-            (active["id"],),
-        )
+        if active:
+            await db.execute(
+                "UPDATE rotation SET status='cooldown', exited_at=CURRENT_TIMESTAMP WHERE id=?",
+                (active["id"],),
+            )
 
         # Try queue first
         from_bench = False
         cursor = await db.execute("""
-            SELECT r.id, r.game_id, g.name FROM rotation r
+            SELECT r.id, r.game_id, g.name, g.cover_url FROM rotation r
             JOIN games g ON g.id = r.game_id
             WHERE r.status = 'queue'
             ORDER BY r.position ASC
@@ -269,7 +268,7 @@ async def advance_rotation() -> dict:
         if not next_game:
             from_bench = True
             cursor = await db.execute("""
-                SELECT r.id, r.game_id, g.name, COUNT(v.id) as vote_count
+                SELECT r.id, r.game_id, g.name, g.cover_url, COUNT(v.id) as vote_count
                 FROM rotation r
                 JOIN games g ON g.id = r.game_id
                 LEFT JOIN votes v ON v.game_id = g.id AND v.vote_type = 'bench_up'
@@ -282,7 +281,7 @@ async def advance_rotation() -> dict:
 
         if not next_game:
             await db.commit()
-            return {"previous": active["name"], "next": None, "from_bench": False}
+            return {"previous": active["name"] if active else None, "next": None, "from_bench": False}
 
         await db.execute(
             "UPDATE rotation SET status='active', position=NULL, entered_at=CURRENT_TIMESTAMP WHERE id=?",
@@ -299,8 +298,9 @@ async def advance_rotation() -> dict:
 
         await db.commit()
         return {
-            "previous": active["name"],
+            "previous": active["name"] if active else None,
             "next": next_game["name"],
+            "next_cover_url": next_game["cover_url"] or "",
             "from_bench": from_bench,
         }
 

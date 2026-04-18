@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class RotationBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
-        super().__init__(command_prefix="!", intents=intents)
+        super().__init__(command_prefix=[], intents=intents)
         self.scheduler = None
 
     async def setup_hook(self):
@@ -29,11 +29,12 @@ class RotationBot(commands.Bot):
         await self.load_extension("bot.commands.sessions")
         logger.info("Cogs loaded.")
 
-        # Sync to dev guild for instant command availability
-        guild = discord.Object(id=config.DISCORD_GUILD_ID)
-        self.tree.copy_global_to(guild=guild)
-        await self.tree.sync(guild=guild)
-        logger.info("Slash commands synced to guild %d.", config.DISCORD_GUILD_ID)
+        # Sync to all configured guilds for instant command availability
+        for guild_id in config.DISCORD_GUILD_IDS:
+            guild = discord.Object(id=guild_id)
+            self.tree.copy_global_to(guild=guild)
+            await self.tree.sync(guild=guild)
+        logger.info("Slash commands synced to %d guild(s).", len(config.DISCORD_GUILD_IDS))
 
     async def on_ready(self):
         logger.info("Logged in as %s (ID: %s)", self.user, self.user.id)

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import discord
@@ -8,6 +9,27 @@ from bot import config, database, enrichment
 from bot.utils import embeds
 
 logger = logging.getLogger(__name__)
+
+_THINKING_FRAMES = [
+    "🌐 Searching the web...",
+    "🔍 Reading sources...",
+    "🤔 Analyzing crossplay support...",
+    "⏳ Checking Xbox & PC compatibility...",
+]
+
+
+async def _animate_thinking(interaction: discord.Interaction, stop: asyncio.Event):
+    """Cycle through status messages every 3s until stop is set."""
+    for i in range(len(_THINKING_FRAMES) * 3):  # cap iterations
+        await asyncio.sleep(3)
+        if stop.is_set():
+            return
+        try:
+            await interaction.edit_original_response(
+                content=_THINKING_FRAMES[i % len(_THINKING_FRAMES)]
+            )
+        except Exception:
+            return
 
 
 def _check_genre_warning(queue_genres: list[str]) -> str | None:
@@ -57,7 +79,7 @@ class RAWGMatchView(discord.ui.View):
 
         self._select.disabled = True
         await interaction.response.edit_message(
-            content="🔍 Running crossplay check with Claude...",
+            content=_THINKING_FRAMES[0],
             embed=None,
             view=self,
         )
@@ -70,16 +92,23 @@ class RAWGMatchView(discord.ui.View):
             )
             return
 
-        # Claude crossplay check
+        # Claude crossplay check with animated status
+        stop = asyncio.Event()
+        animation = asyncio.create_task(_animate_thinking(interaction, stop))
         try:
             result = await enrichment.check_crossplay(game_data)
         except Exception as exc:
             logger.error("Crossplay check failed for %s: %s", game_data["name"], exc)
+            stop.set()
+            animation.cancel()
             await interaction.edit_original_response(
                 content=f"❌ Could not verify crossplay status: {exc}",
                 view=None,
             )
             return
+        finally:
+            stop.set()
+            animation.cancel()
 
         crossplay = result.get("crossplay", False)
         confidence = result.get("confidence", "low")

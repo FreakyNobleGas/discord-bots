@@ -81,20 +81,21 @@ async def check_crossplay(game_data: dict) -> dict:
 
         if response.stop_reason == "end_turn":
             for block in response.content:
-                if hasattr(block, "text"):
-                    text = block.text.strip()
-                    # Strip markdown code fences if Claude adds them anyway
-                    if "```" in text:
-                        parts = text.split("```")
-                        for part in parts:
-                            part = part.strip()
-                            if part.startswith("json"):
-                                part = part[4:].strip()
-                            try:
-                                return json.loads(part)
-                            except json.JSONDecodeError:
-                                continue
-                    return json.loads(text)
+                if getattr(block, "type", None) != "text" or not block.text:
+                    continue
+                text = block.text.strip()
+                # Strip markdown code fences if Claude adds them anyway
+                if "```" in text:
+                    parts = text.split("```")
+                    for part in parts:
+                        part = part.strip()
+                        if part.startswith("json"):
+                            part = part[4:].strip()
+                        try:
+                            return json.loads(part)
+                        except json.JSONDecodeError:
+                            continue
+                return json.loads(text)
             raise ValueError("No text block in Claude end_turn response")
 
         # Build tool_result continuations for any tool_use blocks

@@ -5,6 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from bot import config, database
+from bot.scheduler import _send_thursday_reminder
 from bot.utils import embeds
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ _active_swap_views: dict[int, "ProposeSwapView"] = {}
 
 class ProposeSwapView(discord.ui.View):
     def __init__(self, bot: commands.Bot, game_id: int, game_name: str):
-        super().__init__(timeout=86400)  # 24 hours
+        super().__init__(timeout=config.VOTE_WINDOW_HOURS * 3600)
         self.bot = bot
         self.game_id = game_id
         self.game_name = game_name
@@ -87,13 +88,11 @@ class RotationCog(commands.Cog):
         await interaction.response.defer()
 
         active = await database.get_active()
-        if not active:
-            await interaction.followup.send("No active game to advance from!")
-            return
-
         result = await database.advance_rotation()
-        await database.clear_votes(active["id"], "early_exit")
-        _active_swap_views.pop(active["id"], None)
+
+        if active:
+            await database.clear_votes(active["id"], "early_exit")
+            _active_swap_views.pop(active["id"], None)
 
         embed = embeds.rotation_advanced(result)
         await interaction.followup.send(embed=embed)
@@ -141,6 +140,13 @@ class RotationCog(commands.Cog):
         msg = await interaction.followup.send(embed=embed, view=view)
         view.message = msg
         _active_swap_views[game_id] = view
+
+
+    @app_commands.command(name="send-reminder", description="Manually trigger the Thursday night reminder")
+    async def send_reminder(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        await _send_thursday_reminder(self.bot)
+        await interaction.followup.send("Reminder sent!", ephemeral=True)
 
 
 async def setup(bot: commands.Bot):
