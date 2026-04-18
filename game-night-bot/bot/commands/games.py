@@ -11,10 +11,10 @@ from bot.utils import embeds
 logger = logging.getLogger(__name__)
 
 _THINKING_FRAMES = [
-    "🌐 Searching the web...",
-    "🔍 Reading sources...",
-    "🤔 Analyzing crossplay support...",
-    "⏳ Checking Xbox & PC compatibility...",
+    "🌐 I checking da intewnet...",
+    "🔍 I wead da soulce...",
+    "🤔 I figure out da cwossplay...",
+    "⏳ Almost done, you son of bitch...",
 ]
 
 
@@ -52,8 +52,7 @@ def _check_genre_warning(queue_genres: list[str]) -> str | None:
         a, b, c = queue_genres[i], queue_genres[i + 1], queue_genres[i + 2]
         if a.lower() == b.lower() == c.lower():
             return (
-                f"⚠️ Heads up — the next 3 games in queue are all **{a}**. "
-                "Worth mixing it up?"
+                f"⚠️ Hey! Next 3 game all **{a}**! You son of bitch, mix it up!"
             )
     return None
 
@@ -73,7 +72,7 @@ async def _run_enrichment_on_message(
         logger.error("Crossplay check failed for %s: %s", game_data["name"], exc)
         stop.set()
         animation.cancel()
-        await msg.edit(content=f"❌ Could not verify crossplay status: {exc}")
+        await msg.edit(content=f"❌ Could not velify cwossplay: {exc}")
         return
     finally:
         stop.set()
@@ -104,8 +103,8 @@ async def _run_enrichment_on_message(
 
     if confidence in ("medium", "low"):
         await channel.send(
-            f"⚠️ Claude wasn't fully confident on crossplay for **{game_data['name']}** "
-            f"({confidence} confidence) — someone double-check before we queue this up!"
+            f"⚠️ Claude not sure about cwossplay for **{game_data['name']}** "
+            f"({confidence} confidence) — somebody check dis, dammit!"
         )
 
     queue_genres = await database.get_queue_genres()
@@ -137,9 +136,9 @@ class RAWGMatchView(discord.ui.View):
 
         options.append(
             discord.SelectOption(
-                label="None of these — add manually",
+                label="None of dese, I add myself",
                 value="manual",
-                description="Game isn't in RAWG? Add it without metadata.",
+                description="Game not in dere? No pwoblem, I handle it.",
                 emoji="✏️",
             )
         )
@@ -155,7 +154,7 @@ class RAWGMatchView(discord.ui.View):
         if self._select.values[0] == "manual":
             view = ManualAddView(game_name=self.search_term, added_by=self.added_by)
             await interaction.response.edit_message(
-                content=f"Does **{self.search_term}** support Xbox ↔ PC crossplay?",
+                content=f"Does **{self.search_term}** support Xbox ↔ PC cwossplay?",
                 embed=None,
                 view=view,
             )
@@ -173,7 +172,7 @@ class RAWGMatchView(discord.ui.View):
 
         if await database.game_exists_by_rawg_id(game_data["id"]):
             await interaction.edit_original_response(
-                content=f"⚠️ **{game_data['name']}** is already in the system!",
+                content=f"⚠️ **{game_data['name']}** aweady in da system!",
                 view=None,
             )
             return
@@ -187,7 +186,7 @@ class RAWGMatchView(discord.ui.View):
             stop.set()
             animation.cancel()
             await interaction.edit_original_response(
-                content=f"❌ Could not verify crossplay status: {exc}",
+                content=f"❌ Could not velify cwossplay: {exc}",
                 view=None,
             )
             return
@@ -220,8 +219,8 @@ class RAWGMatchView(discord.ui.View):
 
         if confidence in ("medium", "low"):
             await interaction.channel.send(
-                f"⚠️ Claude wasn't fully confident on crossplay for **{game_data['name']}** "
-                f"({confidence} confidence) — someone double-check before we queue this up!"
+                f"⚠️ Claude not sure about cwossplay for **{game_data['name']}** "
+                f"({confidence} confidence) — somebody check dis, dammit!"
             )
 
         queue_genres = await database.get_queue_genres()
@@ -238,7 +237,7 @@ class ManualAddView(discord.ui.View):
         self.game_name = game_name
         self.added_by = added_by
 
-    @discord.ui.button(label="✅ Yes, crossplay works", style=discord.ButtonStyle.green)
+    @discord.ui.button(label="✅ Yes! Cwossplay work!", style=discord.ButtonStyle.green)
     async def confirm_crossplay(self, interaction: discord.Interaction, button: discord.ui.Button):
         for item in self.children:
             item.disabled = True
@@ -259,20 +258,20 @@ class ManualAddView(discord.ui.View):
         await interaction.edit_original_response(
             content=None,
             embed=discord.Embed(
-                title=f"🎮 {self.game_name} — Added to Bench",
-                description="Added manually (not in RAWG). No cover art or genre data.",
+                title=f"🎮 {self.game_name} — On Da Bench Now, Git!",
+                description="Add manually by City Wok. No cover art, no genre. You happy now?",
                 color=discord.Color.green(),
             ),
             view=None,
         )
         self.stop()
 
-    @discord.ui.button(label="❌ No crossplay", style=discord.ButtonStyle.red)
+    @discord.ui.button(label="❌ No cwossplay, git out!", style=discord.ButtonStyle.red)
     async def deny_crossplay(self, interaction: discord.Interaction, button: discord.ui.Button):
         for item in self.children:
             item.disabled = True
         await interaction.response.edit_message(
-            content=f"❌ **{self.game_name}** was not added — no Xbox ↔ PC crossplay.",
+            content=f"❌ **{self.game_name}** not added — no Xbox ↔ PC cwossplay. Git out!",
             view=None,
         )
         self.stop()
@@ -331,7 +330,7 @@ async def _game_name_autocomplete(
     ]
     choices.append(
         app_commands.Choice(
-            name="✏️ None of these — add manually",
+            name="✏️ None of dese, I add myself",
             value=f"manual:{current}",
         )
     )
@@ -353,7 +352,7 @@ class GamesCog(commands.Cog):
             game_name = name[len("manual:"):]
             view = ManualAddView(game_name=game_name, added_by=interaction.user.name)
             await interaction.followup.send(
-                content=f"Does **{game_name}** support Xbox ↔ PC crossplay?",
+                content=f"Does **{game_name}** support Xbox ↔ PC cwossplay?",
                 view=view,
             )
             return
@@ -369,7 +368,7 @@ class GamesCog(commands.Cog):
 
             if await database.game_exists_by_rawg_id(game_data["id"]):
                 await interaction.followup.send(
-                    f"⚠️ **{game_data['name']}** is already in the system!"
+                    f"⚠️ **{game_data['name']}** aweady in da system!"
                 )
                 return
 
@@ -388,7 +387,7 @@ class GamesCog(commands.Cog):
             if not matches:
                 view = ManualAddView(game_name=name, added_by=interaction.user.name)
                 await interaction.followup.send(
-                    content=f"**{name}** wasn't found on RAWG. Does it support Xbox ↔ PC crossplay?",
+                    content=f"**{name}** not in RAWG. Does it support Xbox ↔ PC cwossplay?",
                     view=view,
                 )
                 return
@@ -424,7 +423,7 @@ class GamesCog(commands.Cog):
         bench_games = await database.get_bench()
         if not bench_games:
             await interaction.followup.send(
-                "The bench is empty! Use `/add-game` to add games."
+                "Da bench empty! Use `/add-game`, you son of bitch!"
             )
             return
 

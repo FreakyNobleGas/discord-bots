@@ -56,7 +56,7 @@ class SessionsCog(commands.Cog):
         active = await database.get_active()
         if not active:
             await interaction.followup.send(
-                "No active game! Use `/advance` to set one first."
+                "No game pwaying! Use `/advance` first, come on!"
             )
             return
 
@@ -67,9 +67,9 @@ class SessionsCog(commands.Cog):
         )
 
         embed = discord.Embed(
-            title="📝 Session Logged",
+            title="📝 Session Go In Da Book!",
             description=(
-                f"Logged a session for **{active['name']}**\n"
+                f"One more session for **{active['name']}**! Good job, son of bitch!\n"
                 f"Session **{new_count}** of {config.MIN_SESSIONS} minimum"
             ),
             color=discord.Color.green(),
@@ -81,8 +81,7 @@ class SessionsCog(commands.Cog):
 
         if new_count >= config.MIN_SESSIONS:
             await interaction.channel.send(
-                f"✅ **{active['name']}** has hit its minimum sessions — "
-                "use `/propose-swap` to rotate out!"
+                f"✅ **{active['name']}** hit da minimum! Use `/propose-swap` to wotate out!"
             )
 
     @app_commands.command(name="history", description="View session history")
@@ -91,7 +90,7 @@ class SessionsCog(commands.Cog):
 
         sessions, total = await database.get_sessions_paginated(1, SESSIONS_PER_PAGE)
         if not sessions:
-            await interaction.followup.send("No sessions logged yet!")
+            await interaction.followup.send("No session yet! Git out and play something!")
             return
 
         total_pages = max(1, math.ceil(total / SESSIONS_PER_PAGE))

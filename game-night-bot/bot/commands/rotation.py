@@ -22,15 +22,15 @@ class ProposeSwapView(discord.ui.View):
         self.game_name = game_name
         self.message: discord.Message | None = None
 
-    @discord.ui.button(label="✅ Advance (0)", style=discord.ButtonStyle.green)
+    @discord.ui.button(label="✅ Move On! (0)", style=discord.ButtonStyle.green)
     async def vote_advance(self, interaction: discord.Interaction, button: discord.ui.Button):
         if await database.has_voted(self.game_id, "early_exit", str(interaction.user.id)):
-            await interaction.response.send_message("You've already voted!", ephemeral=True)
+            await interaction.response.send_message("You aweady vote, I see you!", ephemeral=True)
             return
 
         await database.add_vote(self.game_id, "early_exit", str(interaction.user.id))
         count = await database.get_vote_count(self.game_id, "early_exit")
-        button.label = f"✅ Advance ({count}/{config.EARLY_EXIT_VOTES})"
+        button.label = f"✅ Move On! ({count}/{config.EARLY_EXIT_VOTES})"
 
         if count >= config.EARLY_EXIT_VOTES:
             button.disabled = True
@@ -46,7 +46,7 @@ class ProposeSwapView(discord.ui.View):
         else:
             await interaction.response.edit_message(view=self)
             await interaction.followup.send(
-                f"Vote recorded! ({count}/{config.EARLY_EXIT_VOTES})", ephemeral=True
+                f"I count you vote! ({count}/{config.EARLY_EXIT_VOTES}), keep going!", ephemeral=True
             )
 
     async def on_timeout(self):
@@ -57,8 +57,8 @@ class ProposeSwapView(discord.ui.View):
             try:
                 await self.message.edit(
                     content=(
-                        f"⏰ Vote expired. {count}/{config.EARLY_EXIT_VOTES} votes — "
-                        "threshold not met. Game stays!"
+                        f"⏰ Time up! {count}/{config.EARLY_EXIT_VOTES} vote — "
+                        "not enough, game stay. Dammit!"
                     ),
                     view=None,
                 )
@@ -106,14 +106,14 @@ class RotationCog(commands.Cog):
 
         active = await database.get_active()
         if not active:
-            await interaction.followup.send("No active game to swap out!")
+            await interaction.followup.send("No game even pwaying! What you doing?")
             return
 
         game_id = active["id"]
 
         if game_id in _active_swap_views:
             await interaction.followup.send(
-                f"⚠️ There's already an active swap vote for **{active['name']}**!"
+                f"⚠️ Aweady a vote going on for **{active['name']}**! Patience!"
             )
             return
 
@@ -121,16 +121,16 @@ class RotationCog(commands.Cog):
         min_met = session_count >= config.MIN_SESSIONS
 
         embed = discord.Embed(
-            title="🔄 Propose Swap",
+            title="🔄 You Want Switch Game?",
             description=(
-                f"Proposing to swap out **{active['name']}**\n"
-                f"Sessions played: **{session_count}** "
+                f"Pwoposing to swap out **{active['name']}**\n"
+                f"Session pwayed: **{session_count}** "
                 f"{'✅' if min_met else f'(min: {config.MIN_SESSIONS})'}\n\n"
-                f"Need **{config.EARLY_EXIT_VOTES}** votes to advance."
+                f"Need **{config.EARLY_EXIT_VOTES}** vote to advance."
                 + (
                     ""
                     if min_met
-                    else f"\n⚠️ This would be an early exit (before {config.MIN_SESSIONS} minimum sessions)."
+                    else f"\n⚠️ Dis would be eawly exit (before {config.MIN_SESSIONS} minimum session). You bettah be sure!"
                 )
             ),
             color=discord.Color.orange(),
@@ -146,7 +146,7 @@ class RotationCog(commands.Cog):
     async def send_reminder(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         await _send_thursday_reminder(self.bot)
-        await interaction.followup.send("Reminder sent!", ephemeral=True)
+        await interaction.followup.send("I send da lemindel, you bettah show up!", ephemeral=True)
 
 
 async def setup(bot: commands.Bot):

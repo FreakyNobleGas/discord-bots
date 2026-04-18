@@ -15,12 +15,12 @@ async def _send_thursday_reminder(bot):
 
     if not active:
         embed = discord.Embed(
-            title="🎮 It's Thursday!",
+            title="🎮 It Thulsday! Git In Here!",
             description=(
-                "No active game set yet.\n\n"
-                "**Quick commands:**\n"
-                "`/advance` — pull a game from the queue or bench\n"
-                "`/rotation` — see the full rotation"
+                "No game set yet, you son of bitch!\n\n"
+                "**Quick command:**\n"
+                "`/advance` — pull a game flom da queue or bench\n"
+                "`/rotation` — see da full lotation"
             ),
             color=discord.Color.blue(),
         )
@@ -28,25 +28,25 @@ async def _send_thursday_reminder(bot):
         session_count = active.get("session_count", 0)
         sessions_left = max(0, config.MIN_SESSIONS - session_count)
 
-        lines = [f"**{active['name']}** — Session {session_count + 1} of {config.MIN_SESSIONS} minimum"]
+        lines = [f"Tonight we play:\n**{active['name']}** — Session {session_count + 1} of {config.MIN_SESSIONS} minimum"]
 
         if queue:
             lines.append("")
-            lines.append("**Up next:**")
+            lines.append("**Up next in line:**")
             for g in queue:
                 lines.append(f"• {g['name']}")
 
         lines.append("")
-        lines.append("**Commands:**")
-        lines.append("`/log-session` — log tonight's session after you're done")
+        lines.append("**Command, dammit:**")
+        lines.append("`/log-session` — wog tonight session when you done")
         if session_count >= config.MIN_SESSIONS:
-            lines.append("`/propose-swap` — vote to rotate to the next game")
+            lines.append("`/propose-swap` — vote to wotate to da next game")
         else:
-            lines.append(f"`/propose-swap` — vote to skip early ({sessions_left} session{'s' if sessions_left != 1 else ''} left before min)")
-        lines.append("`/rotation` — see the full rotation & bench")
+            lines.append(f"`/propose-swap` — vote to skip eawly ({sessions_left} session{'s' if sessions_left != 1 else ''} left before min)")
+        lines.append("`/rotation` — see da full lotation & bench")
 
         embed = discord.Embed(
-            title="🎮 It's Thursday!",
+            title="🎮 It Thulsday! Git In Here!",
             description="\n".join(lines),
             color=discord.Color.blue(),
         )
