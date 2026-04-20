@@ -1,4 +1,3 @@
-import math
 import logging
 
 import discord
@@ -6,64 +5,45 @@ from discord import app_commands
 from discord.ext import commands
 
 from bot import config, database
-from bot.utils import embeds
+from bot.scheduler import _send_reminder_to_guild
 
 logger = logging.getLogger(__name__)
 
-SESSIONS_PER_PAGE = 10
 
-
-class HistoryView(discord.ui.View):
-    def __init__(self, guild_id: int, current_page: int, total_pages: int):
-        super().__init__(timeout=120)
-        self.guild_id = guild_id
-        self.current_page = current_page
-        self.total_pages = total_pages
-        self._refresh_buttons()
-
-    def _refresh_buttons(self):
-        self.prev_btn.disabled = self.current_page <= 1
-        self.next_btn.disabled = self.current_page >= self.total_pages
-
-    @discord.ui.button(label="◀ Prev", style=discord.ButtonStyle.secondary)
-    async def prev_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.current_page -= 1
-        await self._update(interaction)
-
-    @discord.ui.button(label="Next ▶", style=discord.ButtonStyle.secondary)
-    async def next_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.current_page += 1
-        await self._update(interaction)
-
-    async def _update(self, interaction: discord.Interaction):
-        sessions, total = await database.get_sessions_paginated(
-            self.guild_id, self.current_page, SESSIONS_PER_PAGE
-        )
-        self.total_pages = max(1, math.ceil(total / SESSIONS_PER_PAGE))
-        self._refresh_buttons()
-        embed = embeds.session_history(sessions, self.current_page, self.total_pages)
-        await interaction.response.edit_message(embed=embed, view=self)
+async def _game_autocomplete(
+    interaction: discord.Interaction, current: str
+) -> list[app_commands.Choice[str]]:
+    try:
+        games = await database.search_games(interaction.guild_id, current)
+    except Exception:
+        games = []
+    return [
+        app_commands.Choice(name=g["name"][:100], value=str(g["id"]))
+        for g in games
+    ]
 
 
 class SessionsCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="log-session", description="Log a gaming session for tonight's game")
-    @app_commands.describe(notes="Optional notes about tonight's session")
-    async def log_session(self, interaction: discord.Interaction, notes: str | None = None):
+    @app_commands.command(name="log-session", description="Log a gaming session")
+    @app_commands.describe(
+        game="The game you played tonight",
+        notes="Optional notes about the session",
+    )
+    @app_commands.autocomplete(game=_game_autocomplete)
+    async def log_session(self, interaction: discord.Interaction, game: str, notes: str | None = None):
         await interaction.response.defer()
         guild_id = interaction.guild_id
 
-        active = await database.get_active(guild_id)
-        if not active:
-            await interaction.followup.send(
-                "No game pwaying! Use `/advance` first, come on!"
-            )
+        target = await database.get_game_by_id(guild_id, int(game)) if game.isdigit() else None
+        if not target:
+            await interaction.followup.send("Dat game not found! Use da autocomplete, dammit!")
             return
 
-        new_count = await database.log_session(
-            game_id=active["id"],
+        total_sessions = await database.log_session(
+            game_id=target["id"],
             logged_by=interaction.user.name,
             notes=notes,
         )
@@ -71,8 +51,8 @@ class SessionsCog(commands.Cog):
         embed = discord.Embed(
             title="📝 Session Go In Da Book!",
             description=(
-                f"One more session for **{active['name']}**! Good job, son of bitch!\n"
-                f"Session **{new_count}** of {config.MIN_SESSIONS} minimum"
+                f"One more session for **{target['name']}**! Good job, son of bitch!\n"
+                f"**{total_sessions}** total session{'s' if total_sessions != 1 else ''}"
             ),
             color=discord.Color.green(),
         )
@@ -81,32 +61,14 @@ class SessionsCog(commands.Cog):
 
         await interaction.followup.send(embed=embed)
 
-        if new_count >= config.MIN_SESSIONS:
-            await interaction.channel.send(
-                f"✅ **{active['name']}** hit da minimum! Use `/propose-swap` to wotate out!"
-            )
 
-    @app_commands.command(name="history", description="View session history")
-    async def history(self, interaction: discord.Interaction):
-        await interaction.response.defer()
-        guild_id = interaction.guild_id
-
-        sessions, total = await database.get_sessions_paginated(guild_id, 1, SESSIONS_PER_PAGE)
-        if not sessions:
-            await interaction.followup.send("No session yet! Git out and play something!")
-            return
-
-        total_pages = max(1, math.ceil(total / SESSIONS_PER_PAGE))
-        embed = embeds.session_history(sessions, 1, total_pages)
-        view = HistoryView(guild_id=guild_id, current_page=1, total_pages=total_pages)
-        await interaction.followup.send(embed=embed, view=view)
-
-    @app_commands.command(name="stats", description="View rotation statistics")
-    async def stats(self, interaction: discord.Interaction):
-        await interaction.response.defer()
-        stats = await database.get_stats(interaction.guild_id)
-        embed = embeds.stats_board(stats)
-        await interaction.followup.send(embed=embed)
+    @app_commands.command(name="send-reminder", description="Manually trigger the Thursday night reminder")
+    async def send_reminder(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        channel_id = config.GUILD_CHANNEL_MAP.get(interaction.guild_id)
+        if channel_id:
+            await _send_reminder_to_guild(self.bot, interaction.guild_id, channel_id)
+        await interaction.followup.send("I send da lemindel, you bettah show up!", ephemeral=True)
 
 
 async def setup(bot: commands.Bot):

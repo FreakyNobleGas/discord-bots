@@ -25,12 +25,10 @@ class RotationBot(commands.Bot):
         logger.info("Database initialized.")
 
         await self.load_extension("bot.commands.games")
-        await self.load_extension("bot.commands.rotation")
         await self.load_extension("bot.commands.sessions")
         await self.load_extension("bot.commands.help")
         logger.info("Cogs loaded.")
 
-        # Sync to all configured guilds for instant command availability
         for guild_id in config.DISCORD_GUILD_IDS:
             guild = discord.Object(id=guild_id)
             self.tree.copy_global_to(guild=guild)
@@ -39,7 +37,6 @@ class RotationBot(commands.Bot):
 
     async def on_ready(self):
         logger.info("Logged in as %s (ID: %s)", self.user, self.user.id)
-        await database.refresh_cooldowns()
 
         if self.scheduler is None:
             self.scheduler = create_scheduler(self)

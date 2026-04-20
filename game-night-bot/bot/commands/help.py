@@ -21,42 +21,26 @@ class HelpCog(commands.Cog):
         embed.add_field(
             name="🗓️ Da Lotation",
             value=(
-                "`/rotation` — See who pwaying, who in queue, who on bench. Look at it!\n"
-                "`/advance` — Move to da next game in da lotation. Do it!\n"
-                "`/propose-swap` — Start a vote to swap out da current game. Need "
-                f"enough vote or it no work, dammit."
-            ),
-            inline=False,
-        )
-
-        embed.add_field(
-            name="🕹️ Da Bench",
-            value=(
-                "`/add-game` — Add a game to da bench. I check cwossplay first, you bettah wait!\n"
-                "`/remove-game` — Retire a game flom da lotation. Git out, game!\n"
-                "`/bench` — See all da bench game and vote 👍 for your favorite!"
+                "`/rotation` — See all da game, when dey last pwayed, and how many session.\n"
+                "`/add-game` — Add a game to da lotation. Pick flom da list!\n"
+                "`/remove-game` — Remove a game flom da lotation. Git out, game!"
             ),
             inline=False,
         )
 
         embed.add_field(
             name="📝 Da Session",
-            value=(
-                "`/log-session` — Wog tonight session after you done pwaying. Don't forget!\n"
-                "`/history` — See da history book of all past session.\n"
-                "`/stats` — See City Wok game stat. Very impwessive!"
-            ),
+            value="`/log-session` — Log a session for da game you pwayed tonight. Don't forget!",
             inline=False,
         )
 
         embed.add_field(
             name="🔔 Da Lemindel",
-            value="`/send-reminder` — Manually send da Thulsday lemindel. In case you forget, son of bitch.",
+            value="`/send-reminder` — Manually send da Thulsday lemindel with da voting poll.",
             inline=False,
         )
 
         embed.set_footer(text="City Wok Game Night — Best game night in all of South Pawk!")
-
         await interaction.response.send_message(embed=embed)
 
 
