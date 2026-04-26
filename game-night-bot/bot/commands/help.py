@@ -34,12 +34,6 @@ class HelpCog(commands.Cog):
             inline=False,
         )
 
-        embed.add_field(
-            name="🔔 Da Lemindel",
-            value="`/send-reminder` — Manually send da Thulsday lemindel with da voting poll.",
-            inline=False,
-        )
-
         embed.set_footer(text="City Wok Game Night — Best game night in all of South Pawk!")
         await interaction.response.send_message(embed=embed)
 

@@ -14,5 +14,4 @@ _channel_ids: list[int] = [
 ]
 GUILD_CHANNEL_MAP: dict[int, int] = dict(zip(DISCORD_GUILD_IDS, _channel_ids))
 
-REMINDER_TIME: str = os.getenv("REMINDER_TIME", "08:00")
 DB_PATH: str = os.getenv("DB_PATH", "/app/data/rotation.db")

@@ -24,7 +24,7 @@ async def _game_name_autocomplete(
             name=f"{m['name']} ({(m['released'] or '')[:4]})"[:100],
             value=str(m["id"]),
         )
-        for m in matches
+        for m in matches[:9]  # leave room for the manual option (Discord cap is 25)
     ]
     choices.append(
         app_commands.Choice(

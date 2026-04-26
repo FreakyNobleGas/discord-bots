@@ -4,8 +4,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot import config, database
-from bot.scheduler import _send_reminder_to_guild
+from bot import database
 
 logger = logging.getLogger(__name__)
 
@@ -61,14 +60,6 @@ class SessionsCog(commands.Cog):
 
         await interaction.followup.send(embed=embed)
 
-
-    @app_commands.command(name="send-reminder", description="Manually trigger the Thursday night reminder")
-    async def send_reminder(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        channel_id = config.GUILD_CHANNEL_MAP.get(interaction.guild_id)
-        if channel_id:
-            await _send_reminder_to_guild(self.bot, interaction.guild_id, channel_id)
-        await interaction.followup.send("I send da lemindel, you bettah show up!", ephemeral=True)
 
 
 async def setup(bot: commands.Bot):

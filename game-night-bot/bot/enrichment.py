@@ -23,12 +23,17 @@ def _parse_rawg_game(game: dict) -> dict:
     }
 
 
-async def search_rawg(name: str, limit: int = 5) -> list[dict]:
+async def search_rawg(name: str, limit: int = 10) -> list[dict]:
     """Search RAWG and return up to `limit` match dicts."""
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get(
             RAWG_SEARCH_URL,
-            params={"search": name, "key": config.RAWG_API_KEY, "page_size": limit},
+            params={
+                "search": name,
+                "key": config.RAWG_API_KEY,
+                "page_size": limit,
+                "search_precise": "true",
+            },
         )
         response.raise_for_status()
         data = response.json()

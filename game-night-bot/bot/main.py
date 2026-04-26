@@ -5,7 +5,6 @@ import discord
 from discord.ext import commands
 
 from bot import config, database
-from bot.scheduler import create_scheduler
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,8 +17,6 @@ class RotationBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         super().__init__(command_prefix=[], intents=intents)
-        self.scheduler = None
-
     async def setup_hook(self):
         await database.init_db()
         logger.info("Database initialized.")
@@ -37,15 +34,6 @@ class RotationBot(commands.Bot):
 
     async def on_ready(self):
         logger.info("Logged in as %s (ID: %s)", self.user, self.user.id)
-
-        if self.scheduler is None:
-            self.scheduler = create_scheduler(self)
-            self.scheduler.start()
-
-    async def close(self):
-        if self.scheduler:
-            self.scheduler.shutdown(wait=False)
-        await super().close()
 
 
 async def main():

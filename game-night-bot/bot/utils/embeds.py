@@ -1,4 +1,5 @@
 import discord
+from datetime import datetime
 
 GENRE_EMOJIS: dict[str, str] = {
     "shooter": "🔫",
@@ -23,10 +24,38 @@ GENRE_EMOJIS: dict[str, str] = {
     "massively multiplayer": "🌐",
 }
 
+# Tags that are too broad to be useful as a primary identifier
+_GENERIC_TAGS = {"action", "adventure", "indie"}
+
+# Per-game overrides for games RAWG doesn't tag specifically enough
+GAME_OVERRIDES: dict[str, str] = {
+    "phasmophobia": "👻",
+    "content warning": "📹",
+    "helldivers 2": "🪖",
+    "warhammer 40,000: space marine ii": "🪖",
+    "toxic commando": "☣️",
+    "diablo iv": "😈",
+    "abiotic factor": "🧪",
+    "roadside research": "🗺️",
+    "halo infinite": "🔫",
+    "the first descendant": "🔫",
+}
+
 SEP = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 
-def get_primary_emoji(genre_tags: list) -> str:
+def get_primary_emoji(genre_tags: list, game_name: str = "") -> str:
+    if game_name:
+        override = GAME_OVERRIDES.get(game_name.lower())
+        if override:
+            return override
+    # Prefer specific tags over generic ones
+    for tag in genre_tags:
+        if tag.lower() not in _GENERIC_TAGS:
+            emoji = GENRE_EMOJIS.get(tag.lower())
+            if emoji:
+                return emoji
+    # Fall back to generic tags
     for tag in genre_tags:
         emoji = GENRE_EMOJIS.get(tag.lower())
         if emoji:
@@ -55,7 +84,7 @@ def rawg_matches(matches: list[dict], query: str) -> discord.Embed:
 
 
 def game_added(game_data: dict) -> discord.Embed:
-    emoji = get_primary_emoji(game_data.get("genres", []))
+    emoji = get_primary_emoji(game_data.get("genres", []), game_data.get("name", ""))
     embed = discord.Embed(
         title=f"{emoji} {game_data['name']} — Added to Lotation!",
         color=discord.Color.green(),
@@ -69,6 +98,16 @@ def game_added(game_data: dict) -> discord.Embed:
     return embed
 
 
+def _fmt_date(last_played) -> str:
+    if not last_played:
+        return "never"
+    try:
+        dt = datetime.strptime(str(last_played)[:10], "%Y-%m-%d")
+        return dt.strftime("%b %-d")
+    except ValueError:
+        return str(last_played)[:10]
+
+
 def rotation_board(games: list[dict]) -> discord.Embed:
     embed = discord.Embed(
         title="🎮 City Wok Game Night Lotation",
@@ -78,18 +117,13 @@ def rotation_board(games: list[dict]) -> discord.Embed:
         embed.description = "No game in da lotation! Use `/add-game`, you son of bitch!"
         return embed
 
-    lines = [SEP]
-    for g in games:
-        emoji = get_primary_emoji(g.get("genre_tags", []))
+    entries = []
+    for i, g in enumerate(games, 1):
+        emoji = get_primary_emoji(g.get("genre_tags", []), g.get("name", ""))
         session_count = g.get("session_count", 0)
-        last_played = g.get("last_played")
-        if last_played:
-            date_str = str(last_played)[:10]
-        else:
-            date_str = "never"
-        lines.append(f"{emoji} **{g['name']}**")
-        lines.append(f"   └ {session_count} session{'s' if session_count != 1 else ''}  •  last pwayed: {date_str}")
-    lines.append(SEP)
+        plays = f"{session_count} play{'s' if session_count != 1 else ''}"
+        date_str = _fmt_date(g.get("last_played"))
+        entries.append(f"{emoji} **{i}. {g['name']}**\n-# {plays} · {date_str}")
 
-    embed.description = "\n".join(lines)
+    embed.description = "\n\n".join(entries)
     return embed
