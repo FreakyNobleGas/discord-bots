@@ -1,4 +1,5 @@
 .env
+locale.json
 .dockerignore
 node_modules
 venv

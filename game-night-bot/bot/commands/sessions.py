@@ -5,6 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from bot import database
+from bot.locale import t
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ class SessionsCog(commands.Cog):
 
         target = await database.get_game_by_id(guild_id, int(game)) if game.isdigit() else None
         if not target:
-            await interaction.followup.send("Dat game not found! Use da autocomplete, dammit!")
+            await interaction.followup.send(t("session_not_found"))
             return
 
         total_sessions = await database.log_session(
@@ -47,11 +48,14 @@ class SessionsCog(commands.Cog):
             notes=notes,
         )
 
+        session_word = "sessions" if total_sessions != 1 else "session"
         embed = discord.Embed(
-            title="📝 Session Go In Da Book!",
-            description=(
-                f"One more session for **{target['name']}**! Good job, son of bitch!\n"
-                f"**{total_sessions}** total session{'s' if total_sessions != 1 else ''}"
+            title=t("session_logged_title"),
+            description=t(
+                "session_logged_description",
+                name=target["name"],
+                total=total_sessions,
+                session_word=session_word,
             ),
             color=discord.Color.green(),
         )
@@ -59,7 +63,6 @@ class SessionsCog(commands.Cog):
             embed.add_field(name="Notes", value=notes, inline=False)
 
         await interaction.followup.send(embed=embed)
-
 
 
 async def setup(bot: commands.Bot):

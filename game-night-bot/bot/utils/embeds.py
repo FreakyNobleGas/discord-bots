@@ -1,6 +1,8 @@
 import discord
 from datetime import datetime
 
+from bot.locale import t
+
 GENRE_EMOJIS: dict[str, str] = {
     "shooter": "🔫",
     "horror": "👻",
@@ -65,8 +67,8 @@ def get_primary_emoji(genre_tags: list, game_name: str = "") -> str:
 
 def rawg_matches(matches: list[dict], query: str) -> discord.Embed:
     embed = discord.Embed(
-        title=f'🔍 I find dese game for you, "{query}"',
-        description="Pick da light one, dammit:",
+        title=t("search_title", query=query),
+        description=t("search_description"),
         color=discord.Color.blurple(),
     )
     for i, m in enumerate(matches, 1):
@@ -75,7 +77,7 @@ def rawg_matches(matches: list[dict], query: str) -> discord.Embed:
         genres_str = ", ".join(m["genres"][:3]) if m["genres"] else "Unknown"
         embed.add_field(
             name=f"{i}. {m['name']}{f' ({year})' if year else ''}",
-            value=f"**Platfolm:** {platforms_str}\n**Genle:** {genres_str}",
+            value=f"**Platform:** {platforms_str}\n**Genre:** {genres_str}",
             inline=False,
         )
     if matches and matches[0].get("cover_url"):
@@ -86,11 +88,11 @@ def rawg_matches(matches: list[dict], query: str) -> discord.Embed:
 def game_added(game_data: dict) -> discord.Embed:
     emoji = get_primary_emoji(game_data.get("genres", []), game_data.get("name", ""))
     embed = discord.Embed(
-        title=f"{emoji} {game_data['name']} — Added to Lotation!",
+        title=t("game_added_title", emoji=emoji, name=game_data["name"]),
         color=discord.Color.green(),
     )
     genres_str = ", ".join(game_data.get("genres", [])) or "Unknown"
-    embed.add_field(name="Genle", value=genres_str, inline=True)
+    embed.add_field(name="Genre", value=genres_str, inline=True)
     if game_data.get("released") and game_data["released"] != "unknown":
         embed.add_field(name="Released", value=game_data["released"][:4], inline=True)
     if game_data.get("cover_url"):
@@ -110,11 +112,11 @@ def _fmt_date(last_played) -> str:
 
 def rotation_board(games: list[dict]) -> discord.Embed:
     embed = discord.Embed(
-        title="🎮 City Wok Game Night Lotation",
+        title=t("rotation_title"),
         color=discord.Color.gold(),
     )
     if not games:
-        embed.description = "No game in da lotation! Use `/add-game`, you son of bitch!"
+        embed.description = t("rotation_empty")
         return embed
 
     entries = []

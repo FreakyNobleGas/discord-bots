@@ -1,0 +1,40 @@
+{
+  "_comment": "Copy this file to locale.json and customize it. locale.json is gitignored so your personality is yours alone.",
+
+  "bot_name": "City Wok",
+
+  "rotation_title": "🎮 City Wok Game Night Lotation",
+  "rotation_empty": "No game in da lotation! Use `/add-game`, you son of bitch!",
+
+  "search_title": "🔍 I find dese game for you, \"{query}\"",
+  "search_description": "Pick da light one, dammit:",
+
+  "game_added_title": "{emoji} {name} — Added to Lotation!",
+  "game_added_manual_description": "Added manually by {bot_name}. No cover art, no genre. You happy now?",
+
+  "game_add_autocomplete_manual": "✏️ None of dese, I add myself",
+  "game_add_confirm_prompt": "Add **{name}** to da lotation?",
+  "game_add_confirm_button": "✅ Yes, add it!",
+  "game_add_cancel_button": "❌ Cancel",
+  "game_add_cancelled": "❌ **{name}** not added. Git out!",
+  "game_add_not_in_rawg": "**{name}** not in RAWG. Add it manually?",
+  "game_add_already_exists": "⚠️ **{name}** aweady in da lotation!",
+  "game_add_rawg_fetch_error": "❌ Could not fetch game flom RAWG: {error}",
+  "game_add_rawg_search_error": "❌ Could not weach RAWG API: {error}",
+
+  "game_removed_title": "🗑️ Game Removed",
+  "game_removed_description": "**{name}** has been removed flom da lotation.",
+  "game_remove_not_found": "Dat game not found, son of bitch!",
+
+  "session_logged_title": "📝 Session Go In Da Book!",
+  "session_logged_description": "One more session for **{name}**! Good job, son of bitch!\n**{total}** total {session_word}",
+  "session_not_found": "Dat game not found! Use da autocomplete, dammit!",
+
+  "help_title": "🎮 City Wok Game Night — All Da Command!",
+  "help_description": "Listen up, you son of bitch! Dese awe da command for City Wok Game Night. You use dem or you git out!",
+  "help_rotation_field_name": "🗓️ Da Lotation",
+  "help_rotation_field_value": "`/rotation` — See all da game, when dey last pwayed, and how many session.\n`/add-game` — Add a game to da lotation. Pick flom da list!\n`/remove-game` — Remove a game flom da lotation. Git out, game!",
+  "help_session_field_name": "📝 Da Session",
+  "help_session_field_value": "`/log-session` — Log a session for da game you pwayed tonight. Don't forget!",
+  "help_footer": "City Wok Game Night — Best game night in all of South Pawk!"
+}
