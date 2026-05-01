@@ -80,7 +80,7 @@ class ManualAddView(discord.ui.View):
             content=None,
             embed=discord.Embed(
                 title=t("game_added_title", emoji="🎮", name=self.game_name),
-                description=t("game_added_manual_description"),
+                description=t("game_added_manual_description", bot_name=t("bot_name")),
                 color=discord.Color.green(),
             ),
             view=None,

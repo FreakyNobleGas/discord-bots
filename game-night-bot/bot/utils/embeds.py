@@ -43,9 +43,6 @@ GAME_OVERRIDES: dict[str, str] = {
     "the first descendant": "🔫",
 }
 
-SEP = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-
 def get_primary_emoji(genre_tags: list, game_name: str = "") -> str:
     if game_name:
         override = GAME_OVERRIDES.get(game_name.lower())

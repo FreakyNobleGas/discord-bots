@@ -1,5 +1,6 @@
 .env
 locale.json
+*.db
 .dockerignore
 node_modules
 venv

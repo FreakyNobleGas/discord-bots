@@ -9,9 +9,4 @@ DISCORD_GUILD_IDS: list[int] = [
 ]
 RAWG_API_KEY: str = os.environ["RAWG_API_KEY"]
 
-_channel_ids: list[int] = [
-    int(c.strip()) for c in os.environ["GAME_NIGHT_CHANNEL_IDS"].split(",")
-]
-GUILD_CHANNEL_MAP: dict[int, int] = dict(zip(DISCORD_GUILD_IDS, _channel_ids))
-
 DB_PATH: str = os.getenv("DB_PATH", "/app/data/rotation.db")

@@ -1,6 +1,5 @@
 import json
 import logging
-from typing import Optional
 
 import aiosqlite
 
@@ -49,8 +48,8 @@ def _parse_game(row) -> dict:
 async def add_game(
     guild_id: int,
     name: str,
-    rawg_id: Optional[int],
-    rawg_slug: Optional[str],
+    rawg_id: int | None,
+    rawg_slug: str | None,
     cover_url: str,
     genre_tags: list,
     added_by: str,
@@ -129,7 +128,7 @@ async def search_games(guild_id: int, name: str) -> list[dict]:
         return [dict(row) for row in await cursor.fetchall()]
 
 
-async def get_game_by_id(guild_id: int, game_id: int) -> Optional[dict]:
+async def get_game_by_id(guild_id: int, game_id: int) -> dict | None:
     async with aiosqlite.connect(config.DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
@@ -144,7 +143,7 @@ async def get_game_by_id(guild_id: int, game_id: int) -> Optional[dict]:
 # Session operations
 # ---------------------------------------------------------------------------
 
-async def log_session(game_id: int, logged_by: str, notes: Optional[str] = None) -> int:
+async def log_session(game_id: int, logged_by: str, notes: str | None = None) -> int:
     """Log a session. Returns the new total session count for that game."""
     async with aiosqlite.connect(config.DB_PATH) as db:
         await db.execute(

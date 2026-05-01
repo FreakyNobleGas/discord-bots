@@ -17,6 +17,7 @@ class RotationBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         super().__init__(command_prefix=[], intents=intents)
+
     async def setup_hook(self):
         await database.init_db()
         logger.info("Database initialized.")
