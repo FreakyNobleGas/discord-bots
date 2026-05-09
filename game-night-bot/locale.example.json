@@ -1,0 +1,40 @@
+{
+  "_comment": "Copy this file to locale.json and customize it. locale.json is gitignored so your personality is yours alone.",
+
+  "bot_name": "Game Night Bot",
+
+  "rotation_title": "🎮 Game Night Rotation",
+  "rotation_empty": "No games in the rotation yet. Use `/add-game` to add one!",
+
+  "search_title": "🔍 Search results for \"{query}\"",
+  "search_description": "Select the correct game from the list below:",
+
+  "game_added_title": "{emoji} {name} — Added to Rotation!",
+  "game_added_manual_description": "Added manually by {bot_name}. No cover art or genre available.",
+
+  "game_add_autocomplete_manual": "✏️ None of these, enter manually",
+  "game_add_confirm_prompt": "Add **{name}** to the rotation?",
+  "game_add_confirm_button": "✅ Yes, add it",
+  "game_add_cancel_button": "❌ Cancel",
+  "game_add_cancelled": "❌ **{name}** was not added.",
+  "game_add_not_in_rawg": "**{name}** was not found on RAWG. Add it manually?",
+  "game_add_already_exists": "⚠️ **{name}** is already in the rotation.",
+  "game_add_rawg_fetch_error": "❌ Could not fetch game from RAWG: {error}",
+  "game_add_rawg_search_error": "❌ Could not reach the RAWG API: {error}",
+
+  "game_removed_title": "🗑️ Game Removed",
+  "game_removed_description": "**{name}** has been removed from the rotation.",
+  "game_remove_not_found": "Game not found.",
+
+  "session_logged_title": "📝 Session Logged!",
+  "session_logged_description": "Logged a session for **{name}**.\n**{total}** total {session_word}",
+  "session_not_found": "Game not found. Please use the autocomplete to select a game.",
+
+  "help_title": "🎮 Game Night Bot — Commands",
+  "help_description": "Here are all the available commands:",
+  "help_rotation_field_name": "🗓️ Rotation",
+  "help_rotation_field_value": "`/rotation` — View the game rotation with session counts and last played dates.\n`/add-game` — Add a game to the rotation.\n`/remove-game` — Remove a game from the rotation.",
+  "help_session_field_name": "📝 Sessions",
+  "help_session_field_value": "`/log-session` — Log a session for a game you played.",
+  "help_footer": "Game Night Bot"
+}

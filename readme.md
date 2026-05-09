@@ -14,6 +14,10 @@ Music Bot
 ----------
 This bot joins a voice channel upon request from a user to play a song that they have entered. It proceeds then to play that song and allows users to queue more songs.
 
+Game Night Bot
+--------------
+This bot tracks a group's game rotation for game night. It integrates with the RAWG API to enrich game data and lets members add/remove games, log sessions, and view the rotation ranked by last played date. All bot dialogue is customizable via a locale file. Runs in Docker.
+
 Requirements
 ------------
 Python 3
