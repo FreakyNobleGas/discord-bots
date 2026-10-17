@@ -18,6 +18,10 @@ Game Night Bot
 --------------
 This bot tracks a group's game rotation for game night. It integrates with the RAWG API to enrich game data and lets members add/remove games, log sessions, and view the rotation ranked by last played date. All bot dialogue is customizable via a locale file. Runs in Docker.
 
+Game Night Website
+------------------
+Not a bot. It's the companion site for the Game Night Bot, deployed to Vercel from `game-night-website/`. It charts which genres and games the group plays, has an API for Grok Bot to post patch notes and game suggestions, and has a password-protected admin page. It shares a Postgres database with the bot.
+
 Requirements
 ------------
 Python 3

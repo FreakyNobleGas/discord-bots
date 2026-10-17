@@ -1,0 +1,14 @@
+[project]
+name = "game-night-bot"
+version = "0.1.0"
+description = "Discord bot that tracks the game night rotation"
+requires-python = ">=3.12"
+dependencies = [
+    "asyncpg>=0.30",
+    "discord.py==2.4.0",
+    "httpx==0.27.0",
+    "python-dotenv==1.0.1",
+]
+
+[tool.uv]
+package = false

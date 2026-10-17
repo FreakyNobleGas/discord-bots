@@ -33,6 +33,10 @@ class RotationBot(commands.Bot):
             await self.tree.sync(guild=guild)
         logger.info("Slash commands synced to %d guild(s).", len(config.DISCORD_GUILD_IDS))
 
+    async def close(self):
+        await super().close()
+        await database.close_db()
+
     async def on_ready(self):
         logger.info("Logged in as %s (ID: %s)", self.user, self.user.id)
 

@@ -7,9 +7,13 @@ _EXAMPLE_FILE = _ROOT / "locale.example.json"
 
 
 def _load() -> dict:
-    source = _LOCALE_FILE if _LOCALE_FILE.exists() else _EXAMPLE_FILE
-    with open(source, encoding="utf-8") as f:
-        return json.load(f)
+    # The example file provides defaults, so keys added later still work with an older locale.json.
+    with open(_EXAMPLE_FILE, encoding="utf-8") as f:
+        strings = json.load(f)
+    if _LOCALE_FILE.exists():
+        with open(_LOCALE_FILE, encoding="utf-8") as f:
+            strings.update(json.load(f))
+    return strings
 
 
 _strings: dict = _load()

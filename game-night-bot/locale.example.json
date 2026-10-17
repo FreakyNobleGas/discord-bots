@@ -29,6 +29,7 @@
   "session_logged_title": "📝 Session Logged!",
   "session_logged_description": "Logged a session for **{name}**.\n**{total}** total {session_word}",
   "session_not_found": "Game not found. Please use the autocomplete to select a game.",
+  "site_link_label": "📊 See the stats",
 
   "help_title": "🎮 Game Night Bot — Commands",
   "help_description": "Here are all the available commands:",

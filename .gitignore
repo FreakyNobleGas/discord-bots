@@ -9,3 +9,4 @@ venv
 .vscode
 metrics.json
 discord_servers.json
+.venv

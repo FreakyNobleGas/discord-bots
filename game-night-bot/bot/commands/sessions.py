@@ -6,6 +6,7 @@ from discord.ext import commands
 
 from bot import database
 from bot.locale import t
+from bot.utils.links import with_site_link
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,7 @@ class SessionsCog(commands.Cog):
         if notes:
             embed.add_field(name="Notes", value=notes, inline=False)
 
-        await interaction.followup.send(embed=embed)
+        await interaction.followup.send(**with_site_link("/", embed=embed))
 
 
 async def setup(bot: commands.Bot):

@@ -7,6 +7,7 @@ from discord.ext import commands
 from bot import database, enrichment
 from bot.locale import t
 from bot.utils import embeds
+from bot.utils.links import site_view, with_site_link
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ class ManualAddView(discord.ui.View):
                 description=t("game_added_manual_description", bot_name=t("bot_name")),
                 color=discord.Color.green(),
             ),
-            view=None,
+            view=site_view("/games"),
         )
         self.stop()
 
@@ -148,7 +149,7 @@ class GamesCog(commands.Cog):
                 genre_tags=game_data["genres"],
                 added_by=interaction.user.name,
             )
-            await interaction.followup.send(embed=embeds.game_added(game_data))
+            await interaction.followup.send(**with_site_link("/games", embed=embeds.game_added(game_data)))
             return
 
         # Typed text without picking from autocomplete — search and show results

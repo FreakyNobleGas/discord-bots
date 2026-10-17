@@ -1,0 +1,192 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------
+   Tokens. Light = snowy mountain town; dark = "the basement".
+   Chart series slots are the dataviz reference palette, validated
+   (scripts/validate_palette.js) against --paper in both modes.
+   ------------------------------------------------------------------ */
+:root {
+	color-scheme: light;
+	--sky: #9fcdea;
+	--page: #cfe6f5;
+	--page-2: #eaf4fb;
+	--paper: #fffdf7;
+	--paper-2: #f5f0e6;
+	--ink: #1d1b1a;
+	--ink-2: #4f4a44;
+	--muted: #77716a;
+	--grid: #e8e3d8;
+	--axis: #c9c2b4;
+	--outline: #1d1b1a;
+	--accent: #d9412a;
+	--accent-ink: #ffffff;
+	--accent-soft: #fde3dc;
+	--focus: #2a78d6;
+	--panel-stripe: transparent;
+
+	--series-1: #2a78d6;
+	--series-2: #eb6834;
+	--series-3: #1baf7a;
+	--series-4: #eda100;
+	--series-5: #e87ba4;
+	--series-6: #008300;
+	--series-7: #4a3aa7;
+	--series-8: #e34948;
+	--series-other: #a29d93;
+	--series-neutral: #77716a;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		color-scheme: dark;
+		--sky: #1c2635;
+		--page: #2a1f17;
+		--page-2: #33261c;
+		--paper: #241c16;
+		--paper-2: #2f251d;
+		--ink: #f6efe4;
+		--ink-2: #d2c6b5;
+		--muted: #a39684;
+		--grid: #3a2e25;
+		--axis: #54453a;
+		--outline: #0c0805;
+		--accent: #f2a93b;
+		--accent-ink: #1d140c;
+		--accent-soft: #4a361f;
+		--focus: #6da7ec;
+		--panel-stripe: rgba(0, 0, 0, 0.18);
+
+		--series-1: #3987e5;
+		--series-2: #d95926;
+		--series-3: #199e70;
+		--series-4: #c98500;
+		--series-5: #d55181;
+		--series-6: #008300;
+		--series-7: #9085e9;
+		--series-8: #e66767;
+		--series-other: #7a6f63;
+		--series-neutral: #a39684;
+	}
+}
+
+:root[data-theme='dark'] {
+	color-scheme: dark;
+	--sky: #1c2635;
+	--page: #2a1f17;
+	--page-2: #33261c;
+	--paper: #241c16;
+	--paper-2: #2f251d;
+	--ink: #f6efe4;
+	--ink-2: #d2c6b5;
+	--muted: #a39684;
+	--grid: #3a2e25;
+	--axis: #54453a;
+	--outline: #0c0805;
+	--accent: #f2a93b;
+	--accent-ink: #1d140c;
+	--accent-soft: #4a361f;
+	--focus: #6da7ec;
+	--panel-stripe: rgba(0, 0, 0, 0.18);
+
+	--series-1: #3987e5;
+	--series-2: #d95926;
+	--series-3: #199e70;
+	--series-4: #c98500;
+	--series-5: #d55181;
+	--series-6: #008300;
+	--series-7: #9085e9;
+	--series-8: #e66767;
+	--series-other: #7a6f63;
+	--series-neutral: #a39684;
+}
+
+@theme {
+	--font-display: 'Titan One', ui-rounded, system-ui, sans-serif;
+	--font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--color-page: var(--page);
+	--color-paper: var(--paper);
+	--color-paper-2: var(--paper-2);
+	--color-ink: var(--ink);
+	--color-ink-2: var(--ink-2);
+	--color-muted: var(--muted);
+	--color-grid: var(--grid);
+	--color-outline: var(--outline);
+	--color-accent: var(--accent);
+	--color-accent-ink: var(--accent-ink);
+	--color-accent-soft: var(--accent-soft);
+}
+
+html {
+	background: var(--page);
+}
+
+body {
+	margin: 0;
+	min-height: 100vh;
+	color: var(--ink);
+	font-family: var(--font-sans);
+	/* Wood paneling in the basement; flat sky (with snow in the header) upstairs */
+	background:
+		repeating-linear-gradient(90deg, transparent 0 46px, var(--panel-stripe) 46px 48px),
+		linear-gradient(var(--page), var(--page-2));
+	background-attachment: fixed;
+}
+
+:focus-visible {
+	outline: 3px solid var(--focus);
+	outline-offset: 2px;
+}
+
+@layer components {
+	/* Construction-paper cutout card: flat fill, thick outline, hard offset shadow */
+	.cutout {
+		background: var(--paper);
+		border: 3px solid var(--outline);
+		border-radius: 14px 18px 12px 16px;
+		box-shadow: 5px 5px 0 var(--outline);
+	}
+	.cutout-sm {
+		background: var(--paper);
+		border: 2.5px solid var(--outline);
+		border-radius: 10px 12px 9px 11px;
+		box-shadow: 3px 3px 0 var(--outline);
+	}
+	.display {
+		font-family: var(--font-display);
+		letter-spacing: 0.01em;
+	}
+	.chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		border-radius: 999px;
+		background: var(--paper-2);
+		color: var(--ink-2);
+		font-size: 0.75rem;
+		line-height: 1.4;
+		padding: 0.05rem 0.55rem;
+		white-space: nowrap;
+	}
+	.badge-patch {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		border-radius: 6px;
+		background: var(--accent);
+		color: var(--accent-ink);
+		font-size: 0.7rem;
+		font-weight: 700;
+		padding: 0.05rem 0.45rem;
+		white-space: nowrap;
+		transform: rotate(-2deg);
+	}
+	.tnum {
+		font-variant-numeric: tabular-nums;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	* {
+		transition: none !important;
+	}
+}

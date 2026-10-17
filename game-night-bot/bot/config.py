@@ -9,4 +9,8 @@ DISCORD_GUILD_IDS: list[int] = [
 ]
 RAWG_API_KEY: str = os.environ["RAWG_API_KEY"]
 
-DB_PATH: str = os.getenv("DB_PATH", "/app/data/rotation.db")
+# Neon Postgres, shared with the game night website. Use the direct (non-pooler) URL.
+DATABASE_URL: str = os.environ["DATABASE_URL"]
+
+# Public URL of the game night website, e.g. https://game-night.vercel.app (optional).
+SITE_URL: str = os.getenv("SITE_URL", "").rstrip("/")

@@ -1,0 +1,48 @@
+{
+	"name": "game-night-website",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"lint": "prettier --check .",
+		"format": "prettier --write .",
+		"db:init": "tsx scripts/db.ts init",
+		"db:seed": "tsx scripts/db.ts seed"
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-vercel": "^7.0.0",
+		"@sveltejs/kit": "^3.0.0",
+		"@sveltejs/vite-plugin-svelte": "^7.2.0",
+		"@tailwindcss/vite": "^4.3.0",
+		"@types/d3-scale": "^4.0.9",
+		"@types/d3-shape": "^3.2.0",
+		"@types/node": "^24.19.2",
+		"@types/pg": "^8.23.1",
+		"prettier": "^3.8.3",
+		"prettier-plugin-svelte": "^4.1.0",
+		"prettier-plugin-tailwindcss": "^0.8.0",
+		"svelte": "^5.57.1",
+		"svelte-check": "^4.6.0",
+		"tailwindcss": "^4.3.0",
+		"tsx": "^4.23.15",
+		"typescript": "^6.0.3",
+		"vite": "^8.3.0"
+	},
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*"
+	},
+	"dependencies": {
+		"@vercel/functions": "^3.10.1",
+		"d3-scale": "^4.0.2",
+		"d3-shape": "^3.2.0",
+		"pg": "^8.23.1",
+		"zod": "^4.6.7"
+	}
+}
