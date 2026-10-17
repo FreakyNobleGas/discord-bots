@@ -1,6 +1,6 @@
 # Cartman's Basement Crew — Game Night Dashboard
 
-A companion website for the [game night Discord bot](../game-night-bot). It charts what the crew plays (genre breakdown, leaderboard, games collecting dust) and exposes a JSON API so **Grok Bot** can read the crew's tastes and post patch notes and game suggestions back to the site. A password-protected admin page fixes records by hand.
+A companion website for the [game night Discord bot](../../bot/game-night-bot). It charts what the crew plays (genre breakdown, leaderboard, games collecting dust) and exposes a JSON API so **Grok Bot** can read the crew's tastes and post patch notes and game suggestions back to the site. A password-protected admin page fixes records by hand.
 
 The bot and the site share one Postgres database (Neon, connected through Vercel). The bot writes games and sessions, and the site reads them live. There's no sync between them. See [CLAUDE.md](CLAUDE.md) for how the two fit together.
 
@@ -18,7 +18,7 @@ To run against Postgres, use the Neon `dev` branch or a local database:
 
 ```sh
 # in .env: DATABASE_URL=postgresql://localhost/game_night_dev
-npm run db:init        # apply ../game-night-bot/schema.sql
+npm run db:init        # apply ../../bot/game-night-bot/schema.sql
 npm run db:seed        # load the mock data (only into an empty database)
 ```
 
@@ -138,7 +138,7 @@ What it can do:
 
 ```
 src/env.ts                       env vars (DATABASE_URL, API_TOKEN, ADMIN_*, GAME_NIGHT_TZ…)
-src/lib/types.ts                 row types mirroring ../game-night-bot/schema.sql
+src/lib/types.ts                 row types mirroring bot/game-night-bot/schema.sql
 src/lib/genres.ts                port of the bot's embeds.py: emojis, generic tags, main genre
 src/lib/analytics.ts             analyze(): every stat the pages and API show
 src/lib/copy.ts                  all themed UI strings (the site's locale.json)
@@ -155,11 +155,11 @@ scripts/db.ts                    db:init / db:seed
 
 ## Deploying (Vercel)
 
-Pushes to `master` deploy automatically. The Vercel project's **Root Directory** is `game-night-website`. Commits that only touch other folders skip the build, via `ignoreCommand` in `vercel.json`.
+Pushes to `master` deploy automatically. The Vercel project's **Root Directory** is `website/game-night-website`. Commits that only touch other folders skip the build, via `ignoreCommand` in `vercel.json`.
 
 One-time setup:
 
-1. Import the `discord-bots` repo in Vercel and set Root Directory to `game-night-website`.
+1. Import the `discord-bots` repo in Vercel and set Root Directory to `website/game-night-website`.
 2. Under Storage, add **Neon** from the Marketplace. It sets `DATABASE_URL` (pooled) for the site.
    - Give the bot the **direct** connection string, not the pooled one.
    - Point Preview and Development at a Neon `dev` branch so previews never touch real data.

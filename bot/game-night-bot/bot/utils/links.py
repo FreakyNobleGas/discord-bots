@@ -7,7 +7,7 @@ from bot.locale import t
 def site_view(path: str = "/") -> discord.ui.View | None:
     """A link button to the game night website, or None when SITE_URL isn't set.
 
-    Paths must exist on the site (see ../game-night-website and CLAUDE.md).
+    Paths must exist on the site (see website/game-night-website and CLAUDE.md).
     """
     if not config.SITE_URL:
         return None

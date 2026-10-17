@@ -18,7 +18,7 @@ Commands
 
 Website
 -------
-The bot shares its database with the [game night website](../game-night-website): charts of what the crew plays, an API for Grok Bot, and an admin page. When `SITE_URL` is set, the bot adds a "See the stats" button to its replies after `/add-game` and `/log-session`.
+The bot shares its database with the [game night website](../../website/game-night-website): charts of what the crew plays, an API for Grok Bot, and an admin page. When `SITE_URL` is set, the bot adds a "See the stats" button to its replies after `/add-game` and `/log-session`.
 
 Setup
 -----

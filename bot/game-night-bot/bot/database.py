@@ -9,7 +9,7 @@ from bot import config
 
 logger = logging.getLogger(__name__)
 
-# Shared with the game night website (../game-night-website). See CLAUDE.md.
+# Shared with the game night website (website/game-night-website). See CLAUDE.md.
 _SCHEMA_FILE = Path(__file__).parent.parent / "schema.sql"
 
 _pool: asyncpg.Pool | None = None

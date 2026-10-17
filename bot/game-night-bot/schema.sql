@@ -1,4 +1,4 @@
--- The one schema for the game night bot AND the game night website (../game-night-website).
+-- The one schema for the game night bot AND the game night website (website/game-night-website).
 -- Both projects share this Neon Postgres database; nothing syncs between them.
 -- Idempotent: the bot runs it on startup, the site runs it with `npm run db:init`.
 -- Changing a table here means updating bot/database.py and the site's

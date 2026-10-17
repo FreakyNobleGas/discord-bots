@@ -1,5 +1,5 @@
 // Database chores for the Postgres shared with the game night bot.
-//   npm run db:init   apply ../game-night-bot/schema.sql (idempotent; the bot also runs it)
+//   npm run db:init   apply bot/game-night-bot/schema.sql (idempotent; the bot also runs it)
 //   npm run db:seed   fill an EMPTY database (e.g. the Neon dev branch) with the mock data
 // Reads DATABASE_URL (and DISCORD_GUILD_ID) from the environment or .env.
 
@@ -9,7 +9,7 @@ import { MOCK_GUILD_ID, mockSource } from '../src/lib/server/data/mock.ts';
 import { seedFeed } from '../src/lib/server/feed/seed.ts';
 import { parseSqlTimestamp } from '../src/lib/dates.ts';
 
-const SCHEMA = new URL('../../game-night-bot/schema.sql', import.meta.url);
+const SCHEMA = new URL('../../../bot/game-night-bot/schema.sql', import.meta.url);
 
 try {
 	process.loadEnvFile();

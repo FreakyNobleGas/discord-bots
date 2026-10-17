@@ -2,15 +2,15 @@
 
 Website for the game night Discord bot, for "Cartman's Basement Crew" (a South Park-themed friend group). It charts which genres and games the crew plays, gives Grok Bot an API to read the crew's tastes and post patch notes and game suggestions, and has a password-protected `/admin` page for fixing data by hand.
 
-## Related project: the bot (`../game-night-bot`)
+## Related project: the bot (`../../bot/game-night-bot`)
 
-This site and the Python bot live in the same `discord-bots` monorepo and **share one Neon Postgres database**. Nothing syncs or pushes between them. Each one reads and writes the same rows.
+This site and the Python bot live in the same `discord-bots` monorepo (bots under `bot/`, websites under `website/`) and **share one Neon Postgres database**. Nothing syncs or pushes between them. Each one reads and writes the same rows.
 
 - **Who writes what**
   - The bot writes `games` (`/add-game`, `/remove-game`) and `sessions` (`/log-session`).
   - The site writes `patch_notes` and `suggestions` (Grok, via `POST /api/v1/*`).
   - `/admin` can edit all four tables.
-- **One schema:** `../game-night-bot/schema.sql`. The bot runs it on startup, and `npm run db:init` runs it here.
+- **One schema:** `../../bot/game-night-bot/schema.sql`. The bot runs it on startup, and `npm run db:init` runs it here.
   - Changing a table means updating `schema.sql`, the bot's `bot/database.py`, and this site's `src/lib/types.ts` plus the `postgres.ts` files in `src/lib/server/data` and `src/lib/server/feed`.
   - Keep the schema idempotent (`IF NOT EXISTS`). There is no migration tool.
 - **Data contracts both sides depend on**
@@ -20,7 +20,7 @@ This site and the Python bot live in the same `discord-bots` monorepo and **shar
   - Genre/emoji rules are **duplicated**: `src/lib/genres.ts` is a port of the bot's `bot/utils/embeds.py` (`GENRE_EMOJIS`, `_GENERIC_TAGS`, `GAME_OVERRIDES`). Change both together.
 - **Bot links:** the bot links here from its replies using `SITE_URL` + `/` and `/games` (`bot/utils/links.py`). Don't remove or rename those routes without updating the bot.
 - **Neon free plan:** 100 CU-hours/month, scales to zero after 5 idle minutes. The bot uses the direct connection and holds no idle connections. This site uses the pooled URL with a short idle timeout (`src/lib/server/db/pool.ts`). Don't add anything that keeps a connection open or polls the database.
-- **Vercel deploys:** the project's Root Directory is `game-night-website`. `vercel.json` `ignoreCommand` skips builds for bot-only commits.
+- **Vercel deploys:** the project's Root Directory is `website/game-night-website`. `vercel.json` `ignoreCommand` skips builds for bot-only commits.
 
 ## Stack
 

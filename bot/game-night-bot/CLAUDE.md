@@ -2,9 +2,9 @@
 
 Discord bot that tracks a friend group's game night rotation ("Cartman's Basement Crew"). Slash commands add games (enriched from the RAWG API), log sessions, and show the rotation. It runs in Docker on a home host.
 
-## Related project: the website (`../game-night-website`)
+## Related project: the website (`../../website/game-night-website`)
 
-A SvelteKit site on Vercel charts this bot's data, gives Grok Bot an API, and has a password-protected `/admin` page. Both live in the `discord-bots` monorepo and **share one Neon Postgres database**. Nothing syncs or pushes between them. Each one reads and writes the same rows.
+A SvelteKit site on Vercel charts this bot's data, gives Grok Bot an API, and has a password-protected `/admin` page. Both live in the `discord-bots` monorepo (bots under `bot/`, websites under `website/`) and **share one Neon Postgres database**. Nothing syncs or pushes between them. Each one reads and writes the same rows.
 
 - **Who writes what**
   - This bot writes `games` and `sessions`.

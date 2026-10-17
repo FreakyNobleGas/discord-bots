@@ -1,5 +1,5 @@
 // One pg Pool per function instance, shared across concurrent requests (Fluid compute).
-// The database is shared with the game night bot; the schema is ../game-night-bot/schema.sql.
+// The database is shared with the game night bot; the schema is bot/game-night-bot/schema.sql.
 
 import pg from 'pg';
 import { attachDatabasePool } from '@vercel/functions';
