@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import discord
@@ -17,8 +18,17 @@ async def _game_name_autocomplete(
 ) -> list[app_commands.Choice[str]]:
     if len(current) < 2:
         return []
+    # Discord drops autocomplete interactions after 3s (error 10062), so give
+    # RAWG whatever is left of ~2.5s and fall back to just the manual option.
+    elapsed = (discord.utils.utcnow() - interaction.created_at).total_seconds()
     try:
-        matches = await enrichment.search_rawg(current, limit=5)
+        matches = await asyncio.wait_for(
+            enrichment.search_rawg(current, limit=5),
+            timeout=max(2.5 - elapsed, 0),
+        )
+    except TimeoutError:
+        logger.info("RAWG autocomplete search timed out for %r", current)
+        matches = []
     except Exception:
         matches = []
     choices = [

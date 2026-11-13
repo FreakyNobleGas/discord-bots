@@ -4,12 +4,14 @@ import logging
 import discord
 from discord.ext import commands
 
-from bot import config, database
+from bot import config, database, enrichment
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
+# httpx logs full request URLs at INFO, which include the RAWG API key.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
@@ -36,6 +38,7 @@ class RotationBot(commands.Bot):
     async def close(self):
         await super().close()
         await database.close_db()
+        await enrichment.close()
 
     async def on_ready(self):
         logger.info("Logged in as %s (ID: %s)", self.user, self.user.id)
