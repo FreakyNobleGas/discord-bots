@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 
 import discord
 from discord import app_commands
@@ -12,6 +13,19 @@ from bot.utils.links import site_view, with_site_link
 
 logger = logging.getLogger(__name__)
 
+_pending_searches: set[asyncio.Future] = set()
+
+
+def _log_late_search(task: asyncio.Future, query: str, start: float) -> None:
+    _pending_searches.discard(task)
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc:
+        logger.warning("RAWG autocomplete search for %r failed: %s", query, exc)
+    else:
+        logger.info("RAWG autocomplete search for %r finished in %.1fs", query, time.monotonic() - start)
+
 
 async def _game_name_autocomplete(
     interaction: discord.Interaction, current: str
@@ -19,15 +33,22 @@ async def _game_name_autocomplete(
     if len(current) < 2:
         return []
     # Discord drops autocomplete interactions after 3s (error 10062), so give
-    # RAWG whatever is left of ~2.5s and fall back to just the manual option.
-    elapsed = (discord.utils.utcnow() - interaction.created_at).total_seconds()
+    # RAWG ~2.5s and fall back to just the manual option. The budget is timed
+    # locally because the host clock may not match Discord's.
+    start = time.monotonic()
+    clock_lag = (discord.utils.utcnow() - interaction.created_at).total_seconds()
+    search =asyncio.ensure_future(enrichment.search_rawg(current, limit=5))
     try:
-        matches = await asyncio.wait_for(
-            enrichment.search_rawg(current, limit=5),
-            timeout=max(2.5 - elapsed, 0),
-        )
+        matches = await asyncio.wait_for(asyncio.shield(search), timeout=2.5)
     except TimeoutError:
-        logger.info("RAWG autocomplete search timed out for %r", current)
+        # Let the search finish in the background so it lands in the cache.
+        _pending_searches.add(search)
+        search.add_done_callback(lambda task: _log_late_search(task, current, start))
+        logger.info(
+            "RAWG autocomplete search for %r still running after 2.5s (clock lag vs Discord: %.1fs)",
+            current,
+            clock_lag,
+        )
         matches = []
     except Exception:
         matches = []
